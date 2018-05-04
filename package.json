@@ -1,0 +1,25 @@
+{
+  "name": "segmenta",
+  "version": "1.0.0",
+  "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeo-za/segmenta.git"
+  },
+  "keywords": [
+    "redis",
+    "segmentation",
+    "segment",
+    "sets"
+  ],
+  "author": "Codeo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codeo-za/segmenta/issues"
+  },
+  "homepage": "https://github.com/codeo-za/segmenta#readme"
+}
