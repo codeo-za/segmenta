@@ -4,7 +4,32 @@
   "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "lint": "tslint -p .",
+    "autotest": "jest --watch",
+    "build": "tsc",
+    "clean": "rimraf dist"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.ts?$": "ts-jest"
+    },
+    "testRegex": "(./tests/.*|(\\.)(test|spec))\\.(jsx?|tsx?)$",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "unmockedModulePathPatterns": [
+      "jasmine-expect"
+    ]
   },
   "repository": {
     "type": "git",
@@ -21,5 +46,25 @@
   "bugs": {
     "url": "https://github.com/codeo-za/segmenta/issues"
   },
-  "homepage": "https://github.com/codeo-za/segmenta#readme"
+  "homepage": "https://github.com/codeo-za/segmenta#readme",
+  "dependencies": {
+    "redis": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.3",
+    "@types/faker": "^4.1.2",
+    "@types/jasmine-expect": "^3.8.1",
+    "@types/jest": "^22.2.3",
+    "@types/redis": "^2.8.6",
+    "chai": "^4.1.2",
+    "faker": "^4.1.0",
+    "jasmine-expect": "^3.8.3",
+    "jest": "^22.4.3",
+    "node-ts": "^2.1.2",
+    "rimraf": "^2.6.2",
+    "ts-jest": "^22.4.5",
+    "tslint": "^5.10.0",
+    "tslint-consistent-codestyle": "^1.13.0",
+    "typescript": "^2.8.3"
+  }
 }
