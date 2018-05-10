@@ -15,6 +15,9 @@
     ],
     "jsRules": {},
     "rules": {
+        "align": false,
+        "object-literal-sort-keys": false,
+        "arrow-parens": false,
         "member-ordering": false,
         "no-angle-bracket-type-assertion": true,
         "variable-name": false, /* fixme: this should be overridden by the naming-convention setup above */

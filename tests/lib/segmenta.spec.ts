@@ -1,7 +1,7 @@
 import Segmenta from "../../src/lib/segmenta";
-import { ClientOpts } from "redis";
+import { RedisOptions } from "ioredis";
 import * as faker from "faker";
-import "jasmine-expect";
+import "expect-more-jest";
 
 describe("Segmenta", () => {
   describe("construction", () => {
@@ -14,7 +14,7 @@ describe("Segmenta", () => {
     it(`should construct with redis ClientOpts`, () => {
       // Arrange
       // Act
-      expect(() => new Segmenta({} as ClientOpts)).not.toThrow();
+      expect(() => new Segmenta({} as RedisOptions)).not.toThrow();
       // Assert
     });
   });
@@ -35,7 +35,7 @@ describe("Segmenta", () => {
     });
   });
 
-  function create(config?: ClientOpts) {
+  function create(config?: RedisOptions) {
     return new Segmenta(config);
   }
 });
