@@ -14,10 +14,11 @@
     "transform": {
       "^.+\\.ts?$": "ts-jest"
     },
-    "testRegex": "(./tests/.*|(\\.)(test|spec))\\.(jsx?|tsx?)$",
+    "testRegex": "./tests/.*\\.(test|spec)\\.(jsx?|tsx?)$",
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/dist/"
+      "/dist/",
+      "/.*\\.d\\.ts/"
     ],
     "moduleFileExtensions": [
       "ts",

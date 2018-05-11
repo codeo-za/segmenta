@@ -1,10 +1,11 @@
-import {IHunk, Hunk} from "./hunk";
+import {IHunk, Hunk, isHunk} from "./hunk";
+import {isFunction, isNumber} from "./type-testers";
 
 export interface ISparseBuffer {
   // raw access to internal hunks
   hunks: IHunk[];
-  // overall virtual size
-  size: number;
+  // overall virtual length
+  length: number;
 
   // produces segment ids for the entire virtual space
   getOnBitPositions(): number[];
@@ -23,9 +24,31 @@ export interface ISparseBuffer {
   at(index: number): number | undefined;
 }
 
+function or(a: number, b: number): number {
+  return a | b;
+}
+
+function and(a: number, b: number): number {
+  return a & b;
+}
+
+export function isSparseBuffer(obj: any): obj is ISparseBuffer {
+  if (obj instanceof SparseBuffer) {
+    return true;
+  }
+  return isNumber(obj.length) &&
+    isFunction(obj.getOnBitPositions) &&
+    isFunction(obj.or) &&
+    isFunction(obj.dump) &&
+    isFunction(obj.at) &&
+    Array.isArray(obj.hunks) &&
+    (obj.hunks as IHunk[]).reduce((acc, cur) => acc && isHunk(cur), true);
+}
+
 export default class SparseBuffer implements ISparseBuffer {
   private _size: number = 0;
-  public get size(): number {
+
+  public get length(): number {
     return this._size;
   }
 
@@ -36,15 +59,30 @@ export default class SparseBuffer implements ISparseBuffer {
   private _hunks: IHunk[] = [];
 
   public or(
-    buffer: Buffer,
+    source: Buffer | IHunk | ISparseBuffer,
     offset?: number): SparseBuffer {
-    return this._consume(buffer, offset || 0, (a, b) => a | b);
+    return this._consume(source, offset || 0, or);
   }
 
   public and(
-    buffer: Buffer,
+    source: Buffer | IHunk | ISparseBuffer,
     offset?: number): SparseBuffer {
-    return this._consume(buffer, offset || 0, (a, b) => a & b);
+    return this._consume(source, offset || 0, and);
+  }
+
+  private _consume(
+    source: Buffer | IHunk | ISparseBuffer,
+    offset: number,
+    transform: (a: number, b: number) => number): SparseBuffer {
+    if (source instanceof Buffer) {
+      return this._consumeBuffer(source, offset || 0, transform);
+    } else if (isSparseBuffer(source)) {
+      source.hunks.forEach(hunk => this._consumeBuffer(hunk.buffer, hunk.first, transform));
+      return this;
+    } else if (isHunk(source)) {
+      return this._consumeBuffer(source.buffer, source.first, transform);
+    }
+    throw new Error(`'${transform.name || "transform"}' supports types: Buffer, Hunk, SparseBuffer`);
   }
 
   public getOnBitPositions(): number[] {
@@ -73,7 +111,7 @@ export default class SparseBuffer implements ISparseBuffer {
     return hunk.buffer[index - hunk.first];
   }
 
-  private _consume(
+  private _consumeBuffer(
     buffer: Buffer,
     offset: number,
     overlapTransform: (hunkByte: number, intersectionByte: number) => number): SparseBuffer {
@@ -140,7 +178,7 @@ export default class SparseBuffer implements ISparseBuffer {
       );
     }
     // TODO: optimise this
-    // -> only re-calculate size if it's changed (ie, not an insert into empty space)
+    // -> only re-calculate length if it's changed (ie, not an insert into empty space)
     this._recalculateLength();
   }
 

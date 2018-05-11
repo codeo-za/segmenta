@@ -1,3 +1,6 @@
+import {types} from "util";
+import {isFunction} from "./type-testers";
+
 export interface IHunk {
   // raw access to the buffer
   buffer: Buffer;
@@ -7,12 +10,16 @@ export interface IHunk {
   last: number;
   // gets the number of bytes in this buffer
   size: number;
+
   // set a value at virtual address idx
   set(idx: number, value: number): void;
+
   // get a value at virtual address idx
   at(idx: number): number;
+
   // determines if this hunk covers the virtual address idx
   covers(idx: number): boolean;
+
   // gets you a slice of the buffer (as a new buffer)
   slice(start: number, end?: number): Buffer;
 }
@@ -60,4 +67,19 @@ export class Hunk implements IHunk {
       ? this._buffer.slice(sliceStart)
       : this._buffer.slice(sliceStart, end - this._offset);
   }
+}
+
+export function isHunk(obj: any): obj is IHunk {
+  if (obj instanceof Hunk) {
+    return true;
+  }
+  return obj.buffer &&
+    obj.buffer instanceof Buffer &&
+    types.isNumberObject(obj.first === "number") &&
+    types.isNumberObject(obj.last) &&
+    types.isNumberObject(obj.size) &&
+    isFunction(obj.set) &&
+    isFunction(obj.at) &&
+    isFunction(obj.covers) &&
+    isFunction(obj.slice);
 }

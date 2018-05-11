@@ -1,5 +1,7 @@
 import SparseBuffer from "../../src/lib/sparse-buffer";
 import "expect-more-jest";
+import "../matchers";
+import {Hunk, IHunk} from "../../src/lib/hunk";
 
 describe("sparse-buffer", () => {
   it(`should export the SparseBuffer class as default`, () => {
@@ -15,357 +17,431 @@ describe("sparse-buffer", () => {
       // Arrange
       const sut = create();
       // Act
-      const result = sut.size;
+      const result = sut.length;
       // Assert
       expect(result).toEqual(0);
     });
   });
 
   describe(`functionality`, () => {
-    describe(`or`, () => {
-      describe(`non-intersection`, () => {
-        it(`should initialize with the given buffer when no existing buffer`, () => {
-          // Arrange
-          const sut = create(),
-            buffer = new Buffer([0x03, 0x04]);
-          // Act
-          sut.or(buffer);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(0x03);
-          expect(sut.at(1)).toEqual(0x04);
-        });
+    describe(`binary operators`, () => {
+      describe(`acting on Buffers`, () => {
+        describe(`or`, () => {
+          describe(`non-intersection`, () => {
+            it(`should initialize with the given buffer when no existing buffer`, () => {
+              // Arrange
+              const sut = create(),
+                buffer = new Buffer([0x03, 0x04]);
+              // Act
+              sut.or(buffer);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(0x03);
+              expect(sut.at(1)).toEqual(0x04);
+            });
 
-        it(`should add another buffer which is immediately adjacent`, () => {
-          // Arrange
-          const sut = create(),
-            buffer1 = new Buffer([0x01, 0x02]),
-            buffer2 = new Buffer([0x03, 0x04]);
-          // Act
-          sut.or(buffer1).or(buffer2, 2);
-          // Assert
-          expect(sut.size).toEqual(4);
-          expect(sut.at(0)).toEqual(0x01);
-          expect(sut.at(1)).toEqual(0x02);
-          expect(sut.at(2)).toEqual(0x03);
-          expect(sut.at(3)).toEqual(0x04);
-        });
+            it(`should add another buffer which is immediately adjacent`, () => {
+              // Arrange
+              const sut = create(),
+                buffer1 = new Buffer([0x01, 0x02]),
+                buffer2 = new Buffer([0x03, 0x04]);
+              // Act
+              sut.or(buffer1).or(buffer2, 2);
+              // Assert
+              expect(sut).toHaveLength(4);
+              expect(sut.at(0)).toEqual(0x01);
+              expect(sut.at(1)).toEqual(0x02);
+              expect(sut.at(2)).toEqual(0x03);
+              expect(sut.at(3)).toEqual(0x04);
+            });
 
-        it(`should add another buffer which is one byte offset`, () => {
-          // Arrange
-          const sut = create(),
-            buffer1 = new Buffer([0x01, 0x02]),
-            buffer2 = new Buffer([0x03, 0x04]);
-          // Act
-          sut.or(buffer1).or(buffer2, 3);
-          // Assert
-          expect(sut.size).toEqual(5);
-          expect(sut.at(0)).toEqual(0x01);
-          expect(sut.at(1)).toEqual(0x02);
-          expect(sut.at(2)).toEqual(0x00);
-          expect(sut.at(3)).toEqual(0x03);
-          expect(sut.at(4)).toEqual(0x04);
-        });
+            it(`should add another buffer which is one byte offset`, () => {
+              // Arrange
+              const sut = create(),
+                buffer1 = new Buffer([0x01, 0x02]),
+                buffer2 = new Buffer([0x03, 0x04]);
+              // Act
+              sut.or(buffer1).or(buffer2, 3);
+              // Assert
+              expect(sut).toHaveLength(5);
+              expect(sut.at(0)).toEqual(0x01);
+              expect(sut.at(1)).toEqual(0x02);
+              expect(sut.at(2)).toEqual(0x00);
+              expect(sut.at(3)).toEqual(0x03);
+              expect(sut.at(4)).toEqual(0x04);
+            });
 
-        it(`should be able to add buffers out of order`, () => {
-          // Arrange
-          const sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02]);
-          // Act
-          sut.or(buffer2, 1).or(buffer1, 0);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(buffer1[0]);
-          expect(sut.at(1)).toEqual(buffer2[0]);
+            it(`should be able to add buffers out of order`, () => {
+              // Arrange
+              const sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02]);
+              // Act
+              sut.or(buffer2, 1).or(buffer1, 0);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(buffer1[0]);
+              expect(sut.at(1)).toEqual(buffer2[0]);
+            });
+          });
+          describe(`intersections`, () => {
+            it(`should intersect one byte with one other byte`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02]);
+              // Act
+              sut.or(buffer1).or(buffer2);
+              // Assert
+              expect(sut).toHaveLength(1);
+              expect(sut.at(0)).toEqual(0x03);
+            });
+            it(`should intersect two bytes over two existing non-sparse byte hunks`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02]),
+                interloper = new Buffer([0x02, 0x04]),
+                expected = [0x03, 0x06];
+              // Act
+              sut.or(buffer1, 0)
+                .or(buffer2, 1)
+                .or(interloper, 0);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+            });
+            it(`should add the leftover bytes when provided buffer longer than existing virtual space`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02, 0x04]);
+              // Act
+              sut.or(buffer1)
+                .or(buffer2);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(0x03);
+              expect(sut.at(1)).toEqual(0x04);
+            });
+            it(`should insert non-overlapping bytes`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x04]),
+                interloper = new Buffer([0x02, 0x02, 0x02]);
+              // Act
+              sut.or(buffer1, 0)
+                .or(buffer2, 2)
+                .or(interloper, 0);
+              // Assert
+              expect(sut).toHaveLength(3);
+              expect(sut.at(0)).toEqual(0x03);
+              expect(sut.at(1)).toEqual(0x02);
+              expect(sut.at(2)).toEqual(0x06);
+            });
+            it(`should prepend non-overlapped bytes`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x02]),
+                interloper = new Buffer([0x01]);
+              // Act
+              sut.or(buffer1, 1)
+                .or(interloper, 0);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(0x01);
+              expect(sut.at(1)).toEqual(0x02);
+            });
+            it(`the whole enchilada`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01, 0x01]),
+                offset1 = 0,
+                buffer2 = new Buffer([0x01, 0x01]),
+                offset2 = 3,
+                buffer3 = new Buffer([0x01, 0x01]),
+                offset3 = 6,
+                interloper1 = new Buffer([0x02, 0x02, 0x02]),
+                interloper1Offset = 2,
+                interloper2 = new Buffer([0x04, 0x04, 0x04, 0x04, 0x04]),
+                interloper2Offset = 5,
+                expected = [0x01, 0x01, 0x02, 0x03, 0x03, 0x04, 0x05, 0x05, 0x04, 0x04];
+              // Act
+              sut.or(buffer1, offset1)
+                .or(buffer2, offset2)
+                .or(buffer3, offset3)
+                .or(interloper1, interloper1Offset)
+                .or(interloper2, interloper2Offset);
+              // Assert
+              expect(sut).toHaveLength(expected.length);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+              expect(sut.at(2)).toEqual(expected[2]);
+              expect(sut.at(3)).toEqual(expected[3]);
+              expect(sut.at(4)).toEqual(expected[4]);
+              expect(sut.at(5)).toEqual(expected[5]);
+              expect(sut.at(6)).toEqual(expected[6]);
+              expect(sut.at(7)).toEqual(expected[7]);
+              expect(sut.at(8)).toEqual(expected[8]);
+            });
+          });
+        });
+        describe(`and`, () => {
+          describe(`non-intersection`, () => {
+            it(`should initialize with the given buffer when no existing buffer`, () => {
+              // Arrange
+              const sut = create(),
+                buffer = new Buffer([0x03, 0x04]);
+              // Act
+              sut.and(buffer);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(0x03);
+              expect(sut.at(1)).toEqual(0x04);
+            });
+
+            it(`should add another buffer which is immediately adjacent`, () => {
+              // Arrange
+              const sut = create(),
+                buffer1 = new Buffer([0x01, 0x02]),
+                buffer2 = new Buffer([0x03, 0x04]);
+              // Act
+              sut.and(buffer1)
+                .and(buffer2, 2);
+              // Assert
+              expect(sut).toHaveLength(4);
+              expect(sut.at(0)).toEqual(0x01);
+              expect(sut.at(1)).toEqual(0x02);
+              expect(sut.at(2)).toEqual(0x03);
+              expect(sut.at(3)).toEqual(0x04);
+            });
+
+            it(`should add another buffer which is one byte offset`, () => {
+              // Arrange
+              const sut = create(),
+                buffer1 = new Buffer([0x01, 0x02]),
+                buffer2 = new Buffer([0x03, 0x04]);
+              // Act
+              sut.and(buffer1)
+                .and(buffer2, 3);
+              // Assert
+              expect(sut).toHaveLength(5);
+              expect(sut.at(0)).toEqual(0x01);
+              expect(sut.at(1)).toEqual(0x02);
+              expect(sut.at(2)).toEqual(0x00);
+              expect(sut.at(3)).toEqual(0x03);
+              expect(sut.at(4)).toEqual(0x04);
+            });
+
+            it(`should be able to add buffers out of order`, () => {
+              // Arrange
+              const sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02]);
+              // Act
+              sut.and(buffer2, 1)
+                .and(buffer1, 0);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(buffer1[0]);
+              expect(sut.at(1)).toEqual(buffer2[0]);
+            });
+          });
+          describe(`intersections`, () => {
+            it(`should intersect one byte with one other byte`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02]),
+                expected = 0x01 & 0x02;
+              // Act
+              sut.and(buffer1)
+                .and(buffer2);
+              // Assert
+              expect(sut).toHaveLength(1);
+              expect(sut.at(0)).toEqual(expected);
+            });
+            it(`should intersect two bytes over two existing non-sparse byte hunks`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02]),
+                interloper = new Buffer([0x02, 0x03]),
+                expected = [0x01 & 0x02, 0x02 & 0x03];
+              // Act
+              sut.and(buffer1, 0)
+                .and(buffer2, 1)
+                .and(interloper, 0);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+            });
+            it(`should add the leftover bytes when provided buffer longer than existing virtual space`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x02, 0x04]),
+                expected = [0x01 & 0x02, 0x04];
+              // Act
+              sut.and(buffer1)
+                .and(buffer2);
+              // Assert
+              expect(sut).toHaveLength(2);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+            });
+            it(`should insert non-overlapping bytes`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01]),
+                buffer2 = new Buffer([0x04]),
+                interloper = new Buffer([0x02, 0x02, 0x02]),
+                expected = [0x01 & 0x02, 0x02, 0x04 & 0x02];
+              // Act
+              sut.and(buffer1, 0)
+                .and(buffer2, 2)
+                .and(interloper, 0);
+              // Assert
+              expect(sut.length).toEqual(3);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+              expect(sut.at(2)).toEqual(expected[2]);
+            });
+            it(`should prepend non-overlapped bytes`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x02]),
+                interloper = new Buffer([0x01]),
+                expected = [0x01, 0x02];
+              // Act
+              sut.and(buffer1, 1)
+                .and(interloper, 0);
+              // Assert
+              expect(sut.length).toEqual(2);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+            });
+            it(`the whole enchilada`, () => {
+              // Arrange
+              const
+                sut = create(),
+                buffer1 = new Buffer([0x01, 0x01]),
+                offset1 = 0,
+                buffer2 = new Buffer([0x01, 0x01]),
+                offset2 = 3,
+                buffer3 = new Buffer([0x01, 0x01]),
+                offset3 = 6,
+                interloper1 = new Buffer([0x02, 0x02, 0x02]),
+                interloper1Offset = 2,
+                interloper2 = new Buffer([0x04, 0x04, 0x04, 0x04, 0x04]),
+                interloper2Offset = 5,
+                expected = [0x01, 0x01, 0x02, 0x02 & 0x01, 0x02 & 0x01, 0x04, 0x01 & 0x04, 0x01 & 0x04, 0x04, 0x04];
+              // Act
+              sut.and(buffer1, offset1)
+                .and(buffer2, offset2)
+                .and(buffer3, offset3)
+                .and(interloper1, interloper1Offset)
+                .and(interloper2, interloper2Offset);
+              // Assert
+              expect(sut.length).toEqual(expected.length);
+              expect(sut.at(0)).toEqual(expected[0]);
+              expect(sut.at(1)).toEqual(expected[1]);
+              expect(sut.at(2)).toEqual(expected[2]);
+              expect(sut.at(3)).toEqual(expected[3]);
+              expect(sut.at(4)).toEqual(expected[4]);
+              expect(sut.at(5)).toEqual(expected[5]);
+              expect(sut.at(6)).toEqual(expected[6]);
+              expect(sut.at(7)).toEqual(expected[7]);
+              expect(sut.at(8)).toEqual(expected[8]);
+            });
+          });
         });
       });
-
-      describe(`intersections`, () => {
-        it(`should intersect one byte with one other byte`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02]);
-          // Act
-          sut.or(buffer1).or(buffer2);
-          // Assert
-          expect(sut.size).toEqual(1);
-          expect(sut.at(0)).toEqual(0x03);
+      describe(`acting on SparseBuffers`, () => {
+        describe(`or`, () => {
+          it(`should be able to consume simple, not-overlapping SparseBuffer`, () => {
+            // Arrange
+            const
+              sut = create(new Hunk(new Buffer([0x01]), 0)),
+              other = create(new Hunk(new Buffer([0x02]), 1)),
+              expected = [0x01, 0x02];
+            // Act
+            sut.or(other);
+            // Assert
+            expect(sut).toMatchArray(expected);
+          });
+          it(`should be able to consume overlapping SparseBuffer`, () => {
+            // Arrange
+            const
+              sut = create(new Hunk(new Buffer([0x01]), 0)),
+              other = create(new Hunk(new Buffer([0x02]), 0)),
+              expected = [0x03];
+            // Act
+            sut.or(other);
+            // Assert
+            expect(sut).toMatchArray(expected);
+          });
+          it(`should consume all hunks`, () => {
+            // Arrange
+            const
+              sut = create(new Hunk(new Buffer([0x01]), 0), new Hunk(new Buffer([0x01]), 1)),
+              other = create(new Hunk(new Buffer([0x02]), 0), new Hunk(new Buffer([0x02]), 1)),
+              expected = [0x03, 0x03];
+            // Act
+            sut.or(other);
+            // Assert
+            expect(sut).toMatchArray(expected);
+          });
         });
-        it(`should intersect two bytes over two existing non-sparse byte hunks`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02]),
-            interloper = new Buffer([0x02, 0x04]),
-            expected = [0x03, 0x06];
-          // Act
-          sut.or(buffer1, 0)
-            .or(buffer2, 1)
-            .or(interloper, 0);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-        });
-        it(`should add the leftover bytes when provided buffer longer than existing virtual space`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02, 0x04]);
-          // Act
-          sut.or(buffer1)
-            .or(buffer2);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(0x03);
-          expect(sut.at(1)).toEqual(0x04);
-        });
-        it(`should insert non-overlapping bytes`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x04]),
-            interloper = new Buffer([0x02, 0x02, 0x02]);
-          // Act
-          sut.or(buffer1, 0)
-            .or(buffer2, 2)
-            .or(interloper, 0);
-          // Assert
-          expect(sut.size).toEqual(3);
-          expect(sut.at(0)).toEqual(0x03);
-          expect(sut.at(1)).toEqual(0x02);
-          expect(sut.at(2)).toEqual(0x06);
-        });
-        it(`should prepend non-overlapped bytes`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x02]),
-            interloper = new Buffer([0x01]);
-          // Act
-          sut.or(buffer1, 1)
-            .or(interloper, 0);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(0x01);
-          expect(sut.at(1)).toEqual(0x02);
-        });
-        it(`the whole enchilada`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01, 0x01]),
-            offset1 = 0,
-            buffer2 = new Buffer([0x01, 0x01]),
-            offset2 = 3,
-            buffer3 = new Buffer([0x01, 0x01]),
-            offset3 = 6,
-            interloper1 = new Buffer([0x02, 0x02, 0x02]),
-            interloper1Offset = 2,
-            interloper2 = new Buffer([0x04, 0x04, 0x04, 0x04, 0x04]),
-            interloper2Offset = 5,
-            expected = [0x01, 0x01, 0x02, 0x03, 0x03, 0x04, 0x05, 0x05, 0x04, 0x04];
-          // Act
-          sut.or(buffer1, offset1)
-            .or(buffer2, offset2)
-            .or(buffer3, offset3)
-            .or(interloper1, interloper1Offset)
-            .or(interloper2, interloper2Offset);
-          // Assert
-          expect(sut.size).toEqual(expected.length);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-          expect(sut.at(2)).toEqual(expected[2]);
-          expect(sut.at(3)).toEqual(expected[3]);
-          expect(sut.at(4)).toEqual(expected[4]);
-          expect(sut.at(5)).toEqual(expected[5]);
-          expect(sut.at(6)).toEqual(expected[6]);
-          expect(sut.at(7)).toEqual(expected[7]);
-          expect(sut.at(8)).toEqual(expected[8]);
-        });
-      });
-    });
-
-    describe(`and`, () => {
-      describe(`non-intersection`, () => {
-        it(`should initialize with the given buffer when no existing buffer`, () => {
-          // Arrange
-          const sut = create(),
-            buffer = new Buffer([0x03, 0x04]);
-          // Act
-          sut.and(buffer);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(0x03);
-          expect(sut.at(1)).toEqual(0x04);
-        });
-
-        it(`should add another buffer which is immediately adjacent`, () => {
-          // Arrange
-          const sut = create(),
-            buffer1 = new Buffer([0x01, 0x02]),
-            buffer2 = new Buffer([0x03, 0x04]);
-          // Act
-          sut.and(buffer1)
-            .and(buffer2, 2);
-          // Assert
-          expect(sut.size).toEqual(4);
-          expect(sut.at(0)).toEqual(0x01);
-          expect(sut.at(1)).toEqual(0x02);
-          expect(sut.at(2)).toEqual(0x03);
-          expect(sut.at(3)).toEqual(0x04);
-        });
-
-        it(`should add another buffer which is one byte offset`, () => {
-          // Arrange
-          const sut = create(),
-            buffer1 = new Buffer([0x01, 0x02]),
-            buffer2 = new Buffer([0x03, 0x04]);
-          // Act
-          sut.and(buffer1)
-            .and(buffer2, 3);
-          // Assert
-          expect(sut.size).toEqual(5);
-          expect(sut.at(0)).toEqual(0x01);
-          expect(sut.at(1)).toEqual(0x02);
-          expect(sut.at(2)).toEqual(0x00);
-          expect(sut.at(3)).toEqual(0x03);
-          expect(sut.at(4)).toEqual(0x04);
-        });
-
-        it(`should be able to add buffers out of order`, () => {
-          // Arrange
-          const sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02]);
-          // Act
-          sut.and(buffer2, 1)
-            .and(buffer1, 0);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(buffer1[0]);
-          expect(sut.at(1)).toEqual(buffer2[0]);
-        });
-      });
-
-      describe(`intersections`, () => {
-        it(`should intersect one byte with one other byte`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02]),
-            expected = 0x01 & 0x02;
-          // Act
-          sut.and(buffer1)
-            .and(buffer2);
-          // Assert
-          expect(sut.size).toEqual(1);
-          expect(sut.at(0)).toEqual(expected);
-        });
-        it(`should intersect two bytes over two existing non-sparse byte hunks`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02]),
-            interloper = new Buffer([0x02, 0x03]),
-            expected = [0x01 & 0x02, 0x02 & 0x03];
-          // Act
-          sut.and(buffer1, 0)
-            .and(buffer2, 1)
-            .and(interloper, 0);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-        });
-        it(`should add the leftover bytes when provided buffer longer than existing virtual space`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x02, 0x04]),
-            expected = [0x01 & 0x02, 0x04];
-          // Act
-          sut.and(buffer1)
-            .and(buffer2);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-        });
-        it(`should insert non-overlapping bytes`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01]),
-            buffer2 = new Buffer([0x04]),
-            interloper = new Buffer([0x02, 0x02, 0x02]),
-            expected = [0x01 & 0x02, 0x02, 0x04 & 0x02];
-          // Act
-          sut.and(buffer1, 0)
-            .and(buffer2, 2)
-            .and(interloper, 0);
-          // Assert
-          expect(sut.size).toEqual(3);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-          expect(sut.at(2)).toEqual(expected[2]);
-        });
-        it(`should prepend non-overlapped bytes`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x02]),
-            interloper = new Buffer([0x01]),
-            expected = [0x01, 0x02];
-          // Act
-          sut.and(buffer1, 1)
-            .and(interloper, 0);
-          // Assert
-          expect(sut.size).toEqual(2);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-        });
-        it(`the whole enchilada`, () => {
-          // Arrange
-          const
-            sut = create(),
-            buffer1 = new Buffer([0x01, 0x01]),
-            offset1 = 0,
-            buffer2 = new Buffer([0x01, 0x01]),
-            offset2 = 3,
-            buffer3 = new Buffer([0x01, 0x01]),
-            offset3 = 6,
-            interloper1 = new Buffer([0x02, 0x02, 0x02]),
-            interloper1Offset = 2,
-            interloper2 = new Buffer([0x04, 0x04, 0x04, 0x04, 0x04]),
-            interloper2Offset = 5,
-            expected = [0x01, 0x01, 0x02, 0x02 & 0x01, 0x02 & 0x01, 0x04, 0x01 & 0x04, 0x01 & 0x04, 0x04, 0x04];
-          // Act
-          sut.and(buffer1, offset1)
-            .and(buffer2, offset2)
-            .and(buffer3, offset3)
-            .and(interloper1, interloper1Offset)
-            .and(interloper2, interloper2Offset);
-          // Assert
-          expect(sut.size).toEqual(expected.length);
-          expect(sut.at(0)).toEqual(expected[0]);
-          expect(sut.at(1)).toEqual(expected[1]);
-          expect(sut.at(2)).toEqual(expected[2]);
-          expect(sut.at(3)).toEqual(expected[3]);
-          expect(sut.at(4)).toEqual(expected[4]);
-          expect(sut.at(5)).toEqual(expected[5]);
-          expect(sut.at(6)).toEqual(expected[6]);
-          expect(sut.at(7)).toEqual(expected[7]);
-          expect(sut.at(8)).toEqual(expected[8]);
+        describe(`and`, () => {
+          it(`should be able to consume simple, non-overlapping SparseBuffer`, () => {
+            // Arrange
+            const
+              sut = create(new Hunk(new Buffer([0x01]), 0)),
+              other = create(new Hunk(new Buffer([0x02]), 1)),
+              expected = [0x01, 0x02];
+            // Act
+            sut.and(other);
+            // Assert
+            expect(sut).toHaveLength(2);
+            expect(sut).toMatchArray(expected);
+          });
+          it(`should be able to consume single overlapping SparseBuffer`, () => {
+            // Arrange
+            const
+              sut = create(new Hunk(new Buffer([0x03]), 0)),
+              other = create(new Hunk(new Buffer([0x01]), 0)),
+              expected = [0x01];
+            // Act
+            sut.and(other);
+            // Assert
+            expect(sut).toMatchArray(expected);
+          });
+          it(`should consume all hunks`, () => {
+            // Arrange
+            const
+              sut = create(new Hunk(new Buffer([0x01]), 0), new Hunk(new Buffer([0x01]), 1)),
+              other = create(new Hunk(new Buffer([0x02]), 0), new Hunk(new Buffer([0x02, 0x03]), 1)),
+              expected = [0x00, 0x00, 0x03];
+            // Act
+            sut.and(other);
+            // Assert
+            expect(sut).toMatchArray(expected);
+          });
         });
       });
     });
@@ -465,33 +541,39 @@ describe("sparse-buffer", () => {
           }
         }
       });
-
-      function humanSize(bytes: number) {
-        const suffixes = ["b", "kb", "mb"];
-        while (bytes > 1024 && suffixes.length > 1) {
-          bytes /= 1024;
-          suffixes.shift();
-        }
-        return `${bytes}${suffixes[0]}`;
-      }
-
-      // times are becoming noise in continual test output
-      //  - if you want times, define the environment variable
-      //    SHOW_TIMES
-      function startTimer(label: string) {
-        if (process.env.SHOW_TIMES) {
-          console.time(label);
-        }
-      }
-      function endTimer(label: string) {
-        if (process.env.SHOW_TIMES) {
-          console.timeEnd(label);
-        }
-      }
     });
   });
 
-  function create() {
-    return new SparseBuffer();
+  function create(...initialData: IHunk[]) {
+    const result = new SparseBuffer();
+    initialData.forEach(hunk => {
+      result.or(hunk);
+    });
+    return result;
   }
-});
+
+  function humanSize(bytes: number) {
+    const suffixes = ["b", "kb", "mb"];
+    while (bytes > 1024 && suffixes.length > 1) {
+      bytes /= 1024;
+      suffixes.shift();
+    }
+    return `${bytes}${suffixes[0]}`;
+  }
+
+// times are becoming noise in continual test output
+//  - if you want times, define the environment variable
+//    SHOW_TIMES
+  function startTimer(label: string) {
+    if (process.env.SHOW_TIMES) {
+      console.time(label);
+    }
+  }
+
+  function endTimer(label: string) {
+    if (process.env.SHOW_TIMES) {
+      console.timeEnd(label);
+    }
+  }
+})
+;
