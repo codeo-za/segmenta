@@ -370,12 +370,12 @@ describe("sparse-buffer", () => {
       });
     });
 
-    describe(`asSegmentIds`, () => {
+    describe(`getOnBits`, () => {
       it(`should supply empty array when no buffers consumed`, () => {
         // Arrange
         const sut = create();
         // Act
-        const result = sut.asSegmentIds();
+        const result = sut.getOnBitPositions();
         // Assert
         expect(result).toBeEmptyArray();
       });
@@ -393,13 +393,40 @@ describe("sparse-buffer", () => {
         sut.or(src);
         // Act
         startTimer(timeLabel);
-        const result = sut.asSegmentIds();
+        const result = sut.getOnBitPositions();
         endTimer(timeLabel);
         // Assert
         expect(result).toHaveLength(bits);
         for (let i = 0; i < bits; i++) {
-          if (result[i] !== i + 1) {
-            fail(`expected ${i + 1} at ${i}, but got ${result[i]}`);
+          if (result[i] !== i) {
+            fail(`expected ${i} at ${i}, but got ${result[i]}`);
+            console.log({result});
+            return;
+          }
+        }
+      });
+
+      it(`should return all numbers in a small contiguous array when all bits on`, () => {
+        // Arrange
+        const
+          sut = create(),
+          bytes = 1,
+          src = new Buffer(bytes),
+          bits = bytes * 8,
+          timeLabel = `get the numbers: contiguous source of size ${humanSize(bytes)}`;
+        for (let i = 0; i < bytes; i++) {
+          src[i] = 0xFF;
+        }
+        sut.or(src);
+        // Act
+        startTimer(timeLabel);
+        const result = sut.getOnBitPositions();
+        endTimer(timeLabel);
+        // Assert
+        expect(result).toHaveLength(bits);
+        for (let i = 0; i < bits; i++) {
+          if (result[i] !== i) {
+            fail(`expected ${i} at ${i}, but got ${result[i]}`);
             console.log({result});
             return;
           }
@@ -418,19 +445,19 @@ describe("sparse-buffer", () => {
           .or(allOn, upperBound - 1);
         // Act
         startTimer(timeLabel);
-        const result = sut.asSegmentIds();
+        const result = sut.getOnBitPositions();
         endTimer(timeLabel);
         // Assert
         expect(result).toHaveLength(16);
         for (let i = 0; i < 8; i++) {
-          if (result[i] !== i + 1) {
-            fail(`expected ${i + 1} at ${i}, but got ${result[i]}`);
+          if (result[i] !== i) {
+            fail(`expected ${i} at ${i}, but got ${result[i]}`);
             console.log({result});
             return;
           }
         }
         for (let i = 8; i < 16; i++) {
-          const expected = (bits - 15) + i;
+          const expected = (bits - 16) + i;
           if (result[i] !== expected) {
             fail(`expected ${expected} at ${i}, but got ${result[i]}`);
             console.log({result});

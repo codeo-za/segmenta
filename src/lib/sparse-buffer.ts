@@ -7,7 +7,7 @@ export interface ISparseBuffer {
   size: number;
 
   // produces segment ids for the entire virtual space
-  asSegmentIds(): number[];
+  getOnBitPositions(): number[];
 
   // consumes the provided buffer, OR-ing it with any existing hunks
   //  and filling in gaps where it doesn't cover any existing hunks
@@ -47,11 +47,11 @@ export default class SparseBuffer implements ISparseBuffer {
     return this._consume(buffer, offset || 0, (a, b) => a & b);
   }
 
-  public asSegmentIds(): number[] {
+  public getOnBitPositions(): number[] {
     const result = [] as number[];
     this._hunks.forEach(hunk => {
       for (let i = hunk.first; i <= hunk.last; i++) {
-        addSegmentIdsForByte(result, this.at(i) as number, i);
+        addOnBitPositionsFor(result, this.at(i) as number, i);
       }
     });
     return result;
@@ -190,14 +190,14 @@ function hunkCoversIndex(
   return hunk.first <= index && hunk.last >= index;
 }
 
-function addSegmentIdsForByte(
+function addOnBitPositionsFor(
   result: number[],
   src: number,
   offset: number): void {
   const bitOffset = offset * 8;
   for (let i = 0; i < 8; i++) {
     if (src & 0x01) {
-      result.push(bitOffset + i + 1);
+      result.push(bitOffset + i);
     }
     src >>= 1;
   }
