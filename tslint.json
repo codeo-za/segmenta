@@ -63,6 +63,8 @@
   ],
   "jsRules": {},
   "rules": {
+    "no-string-literal" : false,
+    "no-var-requires" :false,
     "align": false,
     "object-literal-sort-keys": false,
     "arrow-parens": false,

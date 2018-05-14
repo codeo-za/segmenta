@@ -2,6 +2,7 @@ import SparseBuffer from "../../src/lib/sparse-buffer";
 import "expect-more-jest";
 import "../matchers";
 import {Hunk, IHunk} from "../../src/lib/hunk";
+import { startTimer, endTimer } from "../timer";
 
 describe("sparse-buffer", () => {
   it(`should export the SparseBuffer class as default`, () => {
@@ -455,6 +456,26 @@ describe("sparse-buffer", () => {
         // Assert
         expect(result).toBeEmptyArray();
       });
+      it(`should return all numbers in a small contiguous array when all bits on`, () => {
+        // Arrange
+        const
+          sut = create(),
+          bytes = 1,
+          src = new Buffer(bytes),
+          expected = [0, 1, 2, 3, 4, 5, 6, 7 ],
+          timeLabel = `get the numbers: contiguous source of size ${humanSize(bytes)}`;
+        for (let i = 0; i < bytes; i++) {
+          src[i] = 0xFF;
+        }
+        sut.or(src);
+        // Act
+        startTimer(timeLabel);
+        const result = sut.getOnBitPositions();
+        endTimer(timeLabel);
+        // Assert
+        expect(result).toEqual(expected);
+      });
+
       it(`should return all numbers in a large contiguous array when all bits on`, () => {
         // Arrange
         const
@@ -475,34 +496,7 @@ describe("sparse-buffer", () => {
         expect(result).toHaveLength(bits);
         for (let i = 0; i < bits; i++) {
           if (result[i] !== i) {
-            fail(`expected ${i} at ${i}, but got ${result[i]}`);
-            console.log({result});
-            return;
-          }
-        }
-      });
-
-      it(`should return all numbers in a small contiguous array when all bits on`, () => {
-        // Arrange
-        const
-          sut = create(),
-          bytes = 1,
-          src = new Buffer(bytes),
-          bits = bytes * 8,
-          timeLabel = `get the numbers: contiguous source of size ${humanSize(bytes)}`;
-        for (let i = 0; i < bytes; i++) {
-          src[i] = 0xFF;
-        }
-        sut.or(src);
-        // Act
-        startTimer(timeLabel);
-        const result = sut.getOnBitPositions();
-        endTimer(timeLabel);
-        // Assert
-        expect(result).toHaveLength(bits);
-        for (let i = 0; i < bits; i++) {
-          if (result[i] !== i) {
-            fail(`expected ${i} at ${i}, but got ${result[i]}`);
+            fail(`expected ${i + 1} at ${i}, but got ${result[i]}`);
             console.log({result});
             return;
           }
@@ -561,19 +555,4 @@ describe("sparse-buffer", () => {
     return `${bytes}${suffixes[0]}`;
   }
 
-// times are becoming noise in continual test output
-//  - if you want times, define the environment variable
-//    SHOW_TIMES
-  function startTimer(label: string) {
-    if (process.env.SHOW_TIMES) {
-      console.time(label);
-    }
-  }
-
-  function endTimer(label: string) {
-    if (process.env.SHOW_TIMES) {
-      console.timeEnd(label);
-    }
-  }
-})
-;
+});

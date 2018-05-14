@@ -58,16 +58,60 @@ export default class SparseBuffer implements ISparseBuffer {
 
   private _hunks: IHunk[] = [];
 
+  /*
+   * Logically ORs the given bytes with the current virtual bytes
+   */
   public or(
     source: Buffer | IHunk | ISparseBuffer,
     offset?: number): SparseBuffer {
     return this._consume(source, offset || 0, or);
   }
 
+  /*
+   * Logically ANDs the given bytes with the current virtual bytes
+   */
   public and(
     source: Buffer | IHunk | ISparseBuffer,
     offset?: number): SparseBuffer {
     return this._consume(source, offset || 0, and);
+  }
+
+  /*
+   * Gets the indexes of bits which are "on" in the sparse buffer
+   *
+   */
+  public getOnBitPositions(): number[] {
+    const result = [] as number[];
+    this._hunks.forEach(hunk => {
+      for (let i = hunk.first; i <= hunk.last; i++) {
+        addOnBitPositionsFor(result, this.at(i) as number, i);
+      }
+    });
+    return result;
+  }
+
+  /*
+   * Dumps out the values of each byte in the virtual address space as numbers (0-255)
+   */
+  public dump(): number[] {
+    const result = [];
+    for (let i = 0; i < this._size; i++) {
+      result.push(this.at(i) as number);
+    }
+    return result;
+  }
+
+  /*
+   * Returns the byte value at the provided virtual address
+   *
+   * @param {number} index The virtual address to get the value at
+   */
+  public at(index: number): number | undefined {
+    const hunk = this._findHunkAt(index);
+    if (!hunk) {
+      return index < this._size ? 0 : undefined;
+    }
+    return hunk.buffer[index - hunk.first];
   }
 
   private _consume(
@@ -83,32 +127,6 @@ export default class SparseBuffer implements ISparseBuffer {
       return this._consumeBuffer(source.buffer, source.first, transform);
     }
     throw new Error(`'${transform.name || "transform"}' supports types: Buffer, Hunk, SparseBuffer`);
-  }
-
-  public getOnBitPositions(): number[] {
-    const result = [] as number[];
-    this._hunks.forEach(hunk => {
-      for (let i = hunk.first; i <= hunk.last; i++) {
-        addOnBitPositionsFor(result, this.at(i) as number, i);
-      }
-    });
-    return result;
-  }
-
-  public dump(): number[] {
-    const result = [];
-    for (let i = 0; i < this._size; i++) {
-      result.push(this.at(i) as number);
-    }
-    return result;
-  }
-
-  public at(index: number): number | undefined {
-    const hunk = this._findHunkAt(index);
-    if (!hunk) {
-      return index < this._size ? 0 : undefined;
-    }
-    return hunk.buffer[index - hunk.first];
   }
 
   private _consumeBuffer(
@@ -134,10 +152,10 @@ export default class SparseBuffer implements ISparseBuffer {
           break;
         }
       }
+      this._recalculateLength();
     } else {
       this._addHunk(hunk);
     }
-    this._recalculateLength();
     return this;
   }
 
@@ -165,7 +183,7 @@ export default class SparseBuffer implements ISparseBuffer {
   private _addHunk(
     hunk: IHunk,
     insertBefore?: number) {
-    if (hunk.size === 0) {
+    if (hunk.length === 0) {
       return;
     }
     if (insertBefore !== undefined) {
@@ -233,10 +251,29 @@ function addOnBitPositionsFor(
   src: number,
   offset: number): void {
   const bitOffset = offset * 8;
-  for (let i = 0; i < 8; i++) {
-    if (src & 0x01) {
-      result.push(bitOffset + i);
-    }
-    src >>= 1;
+
+  if (src & 128) {
+    result.push(bitOffset);
+  }
+  if (src & 64) {
+    result.push(bitOffset + 1);
+  }
+  if (src & 32) {
+    result.push(bitOffset + 2);
+  }
+  if (src & 16) {
+    result.push(bitOffset + 3);
+  }
+  if (src & 8) {
+    result.push(bitOffset + 4);
+  }
+  if (src & 4) {
+    result.push(bitOffset + 5);
+  }
+  if (src & 2) {
+    result.push(bitOffset + 6);
+  }
+  if (src & 1) {
+    result.push(bitOffset + 7);
   }
 }

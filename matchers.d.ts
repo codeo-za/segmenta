@@ -3,5 +3,6 @@
 declare namespace jest {
   interface Matchers<R> {
     toMatchArray(array: number[]): void;
+    toBeEquivalentTo<T>(array: T[]): void;
   }
 }
