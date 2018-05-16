@@ -8,11 +8,15 @@ export interface ISparseBuffer {
   length: number;
 
   // produces segment ids for the entire virtual space
-  getOnBitPositions(): number[];
+  getOnBitPositions(skip?: number, take?: number): number[];
 
   // consumes the provided buffer, OR-ing it with any existing hunks
   //  and filling in gaps where it doesn't cover any existing hunks
-  or(buffer: Buffer, offset?: number): void;
+  or(source: Buffer | IHunk | ISparseBuffer, offset?: number): ISparseBuffer;
+
+  // consumes the provided buffer, AnD-ing it with any existing hunks
+  //  and filling in gaps where it doesn't cover any existing hunks
+  and(source: Buffer | IHunk | ISparseBuffer, offset?: number): ISparseBuffer;
 
   // dumps the current full virtual context as a byte arra
   dump(): number[];
@@ -22,6 +26,9 @@ export interface ISparseBuffer {
   // - if the offset is between hunks (ie in the virtual space), you get zero
   // - if the offset is outside of the virtual space, you get undefined
   at(index: number): number | undefined;
+
+  // appends the bytes (equivalent to .or or .and with offset at the current virtual length)
+  append(source: Buffer | IHunk | ISparseBuffer): ISparseBuffer;
 }
 
 function or(a: number, b: number): number {
@@ -63,8 +70,13 @@ export default class SparseBuffer implements ISparseBuffer {
    */
   public or(
     source: Buffer | IHunk | ISparseBuffer,
-    offset?: number): SparseBuffer {
+    offset?: number): ISparseBuffer {
     return this._consume(source, offset || 0, or);
+  }
+
+  public append(
+    source: Buffer | IHunk | ISparseBuffer): ISparseBuffer {
+    return this._consume(source, this.length, or);
   }
 
   /*
@@ -72,7 +84,7 @@ export default class SparseBuffer implements ISparseBuffer {
    */
   public and(
     source: Buffer | IHunk | ISparseBuffer,
-    offset?: number): SparseBuffer {
+    offset?: number): ISparseBuffer {
     return this._consume(source, offset || 0, and);
   }
 
@@ -80,7 +92,7 @@ export default class SparseBuffer implements ISparseBuffer {
    * Gets the indexes of bits which are "on" in the sparse buffer
    *
    */
-  public getOnBitPositions(): number[] {
+  public getOnBitPositions(skip: number = 0, take: number = 100000): number[] {
     const result = [] as number[];
     this._hunks.forEach(hunk => {
       for (let i = hunk.first; i <= hunk.last; i++) {

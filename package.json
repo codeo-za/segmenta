@@ -18,7 +18,8 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/",
-      "/.*\\.d\\.ts/"
+      "/.*\\.d\\.ts/",
+      "/.*_old__"
     ],
     "moduleFileExtensions": [
       "ts",

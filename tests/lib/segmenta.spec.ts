@@ -4,10 +4,17 @@ import * as faker from "faker";
 import "expect-more-jest";
 import {endTimer, startTimer} from "../timer";
 import SparseBuffer from "../../src/lib/sparse-buffer";
+import "../matchers";
 
 describe("Segmenta", () => {
   const keyPrefixes = [] as string[];
   afterAll(async () => {
+    await clearTestKeys();
+  });
+  beforeAll(async () => {
+    await clearTestKeys();
+  });
+  async function clearTestKeys() {
     const redis = new Redis();
     for (const prefix of keyPrefixes) {
       const keys = await redis.keys(`${prefix}/*`);
@@ -15,7 +22,7 @@ describe("Segmenta", () => {
         await redis.del(key);
       }
     }
-  });
+  }
   function segmentName() {
     return faker.random.alphaNumeric(32);
   }
@@ -34,6 +41,27 @@ describe("Segmenta", () => {
     });
   });
 
+  describe(`put`, () => {
+    it(`should be able to add and remove as one atomic operation`, async () => {
+      // Arrange
+      const
+        segment = segmentName(),
+        sut = create(),
+        operations = [
+          { add: 2 },
+          { add: 3 },
+          { del: 4 },
+        ],
+        expected = [2, 3];
+      await sut.add(segment, [4]);
+      // Act
+      await sut.put(segment, operations);
+      const result = await sut.get(segment);
+      // Assert
+      expect(result).toBeEquivalentTo(expected);
+    });
+  });
+
   describe("get", () => {
     describe(`when no segment data defined`, () => {
       it(`should return an empty array`, async () => {
@@ -49,16 +77,16 @@ describe("Segmenta", () => {
       });
     });
     describe(`when have data`, () => {
-      it(`after adding id 1, should be able to get back id 1`, async () => {
+      it(`after adding id 2, should be able to get back id 2`, async () => {
         // Arrange
         const
           sut = create(),
           segment = segmentName();
         // Act
-        await sut.add(segment, [1]);
+        await sut.add(segment, [2]);
         const result = await sut.get(segment);
         // Assert
-        expect(result).toEqual([1]);
+        expect(result).toEqual([2]);
       });
       it(`after adding id 1 & 7, should be able to get back id 1 & 7 ('A')`, async () => {
         // Arrange
@@ -84,6 +112,7 @@ describe("Segmenta", () => {
         // Assert
         expect(result).toEqual(ids);
       });
+
       it(`should store segments in chunks of 41960 by default`, async () => {
         // Arrange
         const
@@ -98,16 +127,16 @@ describe("Segmenta", () => {
         expect(ids).toEqual(values);
         expect(buffer.hunks).toHaveLength(2);
         const sparse1 = new SparseBuffer().or(buffer.hunks[0].buffer, 0);
-        const sparse2 = new SparseBuffer().or(buffer.hunks[1].buffer, sut.segmentSize / 8);
-        expect(sparse1.getOnBitPositions()).toEqual(values.filter(v => v < sut.segmentSize));
-        expect(sparse2.getOnBitPositions()).toEqual(values.filter(v => v >= sut.segmentSize));
+        const sparse2 = new SparseBuffer().or(buffer.hunks[1].buffer, sut.bucketSize / 8);
+        expect(sparse1.getOnBitPositions()).toEqual(values.filter(v => v < sut.bucketSize));
+        expect(sparse2.getOnBitPositions()).toEqual(values.filter(v => v >= sut.bucketSize));
       });
 
       it(`should return ids for small segments, one id per segment`, async () => {
         // Arrange
         const
           sut = create({
-            segmentSize: 8
+            bucketSize: 8
           }),
           source = [1, 11],
           segment = "smallSets";
@@ -118,38 +147,38 @@ describe("Segmenta", () => {
         expect(result).toEqual(source);
       });
 
-      it(`speed test: +- 1 00 000 ids over 5 000 000`, async () => {
+      it(`speed test: +- 1 000 000 ids over 5 000 000`, async () => {
+        // only run this if you have around 5 minutes to waste
+        //  -> populating the +- 1 000 000 ids takes around 250s
+        //  -> querying takes around 0.2s
+        jest.setTimeout(600000);
         // Arrange
         const
           sut = create(),
-          segment = segmentName(),
+          segment = "large-speed-test",
           range5 = { min: 1, max: 2 },
           accept = (i: number) => faker.random.number(range5) === 1,
           source1 = createIdSource(1, 10000, accept),
-          source2 = createIdSource(50000, 150000, accept),
-          source3 = createIdSource(3000000, 3200000, accept),
+          source2 = createIdSource(500000, 1500000, accept),
+          source3 = createIdSource(3000000, 4000000, accept),
           source = source1.concat(source2).concat(source3),
-          label1 = `populating ${source.length} ids`,
-          label2 = `retrieving ids`,
-          label3 = `verifiying ids`;
+          expectedCount = source1.length + source2.length + source3.length,
+          label1 = `populating ${expectedCount} ids`,
+          label2 = `retrieving ids`;
         // Act
         startTimer(label1);
-        await sut.add(segment, source);
+        const copy = source.slice(0);
+        while (copy.length) {
+          await sut.add(segment, copy.splice(0, 200000));
+        }
+        // await sut.add(segment, copy);
         endTimer(label1);
         startTimer(label2);
         const result = await sut.get(segment);
         endTimer(label2);
         // Assert
-        startTimer(label3);
-        expect(result.length).toEqual(source.length);
-        const mismatches = result.reduce((acc, cur, idx) => {
-          if (source.indexOf(cur) === -1) {
-            acc.push(cur);
-          }
-          return acc;
-        }, [] as number[]);
-        endTimer(label3);
-        expect(mismatches).toBeEmptyArray();
+
+        expect(result.length).toEqual(expectedCount);
       });
 
       function createIdSource(
@@ -167,7 +196,7 @@ describe("Segmenta", () => {
     });
   });
 
-  function create(config?: ISegmentaOptions) {
+  function create(config?: ISegmentaOptions)  {
     const result = new Segmenta(config);
     keyPrefixes.push(result.prefix);
     return result;

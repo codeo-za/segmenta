@@ -63,6 +63,8 @@
   ],
   "jsRules": {},
   "rules": {
+    "array-type": false,
+    "max-classes-per-file": 2,
     "no-string-literal" : false,
     "no-var-requires" :false,
     "align": false,

@@ -447,7 +447,7 @@ describe("sparse-buffer", () => {
       });
     });
 
-    describe(`getOnBits`, () => {
+    describe(`getOnBitPositions`, () => {
       it(`should supply empty array when no buffers consumed`, () => {
         // Arrange
         const sut = create();
@@ -456,6 +456,7 @@ describe("sparse-buffer", () => {
         // Assert
         expect(result).toBeEmptyArray();
       });
+
       it(`should return all numbers in a small contiguous array when all bits on`, () => {
         // Arrange
         const
@@ -534,6 +535,22 @@ describe("sparse-buffer", () => {
             return;
           }
         }
+      });
+
+      xdescribe(`paging`, () => {
+        it(`should grab the first number of multi-byte with only two numbers`, () => {
+          // Arrange
+          const
+            sut = create(),
+            first = new Buffer([64]),
+            second = new Buffer([32]),
+            expected = [1];
+          // Act
+          sut.append(first).append(second);
+          const result = sut.getOnBitPositions(0, 1);
+          // Assert
+          expect(result).toEqual(expected);
+        });
       });
     });
   });
