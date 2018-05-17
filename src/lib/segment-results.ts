@@ -39,4 +39,3 @@ export class SegmentResults implements ISegmentResults {
     this._total = total;
   }
 }
-

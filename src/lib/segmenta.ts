@@ -89,21 +89,26 @@ export default class Segmenta {
     return result;
   }
 
+  public async put(segmentId: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
+    await tryDo(() => this._tryPut(segmentId, operations));
+  }
+
+  public async add(segmentId: string, ids: number[]): Promise<void> {
+    const ops = ids.map(i => ({add: i}));
+    await tryDo(() => this._tryPut(segmentId, ops));
+  }
+
+  public async del(segmentId: string, ids: number[]): Promise<void> {
+    const ops = ids.map(i => ({del: i}));
+    await tryDo(() => this._tryPut(segmentId, ops));
+  }
+
   private async _dehydrate(id: string, data: SparseBuffer): Promise<void> {
     await this._resultsetHydrator.dehydrate(id, data);
   }
 
   private async _rehydrate(resultSetId: string): Promise<SparseBuffer> {
     return await this._resultsetHydrator.rehydrate(resultSetId);
-  }
-
-  public async add(segment: string, ids: number[]): Promise<void> {
-    const ops = ids.map(i => ({add: i}));
-    await tryDo(() => this._tryPut(segment, ops));
-  }
-
-  public async put(segment: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
-    await tryDo(() => this._tryPut(segment, operations));
   }
 
   private async _setupLuaFunctions() {

@@ -19,4 +19,3 @@ export interface ISegmentGetOptions {
   skip?: number;
   take?: number;
 }
-

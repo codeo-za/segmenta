@@ -2,7 +2,7 @@ import SparseBuffer from "../../src/lib/sparse-buffer";
 import "expect-more-jest";
 import "../matchers";
 import {Hunk, IHunk} from "../../src/lib/hunk";
-import { startTimer, endTimer } from "../timer";
+import {startTimer, endTimer} from "../timer";
 
 describe("sparse-buffer", () => {
   it(`should export the SparseBuffer class as default`, () => {
@@ -463,7 +463,7 @@ describe("sparse-buffer", () => {
           sut = create(),
           bytes = 1,
           src = new Buffer(bytes),
-          expected = [0, 1, 2, 3, 4, 5, 6, 7 ],
+          expected = [0, 1, 2, 3, 4, 5, 6, 7],
           timeLabel = `get the numbers: contiguous source of size ${humanSize(bytes)}`;
         for (let i = 0; i < bytes; i++) {
           src[i] = 0xFF;
@@ -548,7 +548,7 @@ describe("sparse-buffer", () => {
           // Act
           sut.append(first);
           const result1 = sut.getOnBitPositions(0, 1);
-          const result2 = sut.getOnBitPositions(1, 1)
+          const result2 = sut.getOnBitPositions(1, 1);
           // Assert
           expect(result1).toEqual(expected1);
           expect(result2).toEqual(expected2);
@@ -564,7 +564,7 @@ describe("sparse-buffer", () => {
           // Act
           sut.append(first).append(second);
           const result1 = sut.getOnBitPositions(0, 1);
-          const result2 = sut.getOnBitPositions(1, 1)
+          const result2 = sut.getOnBitPositions(1, 1);
           // Assert
           expect(result1).toEqual(expected1);
           expect(result2).toEqual(expected2);

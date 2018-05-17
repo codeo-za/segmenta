@@ -1,12 +1,17 @@
-import Segmenta, {ISegmentaOptions} from "../../src/lib/segmenta";
-const Redis = require("ioredis");
+import Segmenta from "../../src/lib/segmenta";
+import {ISegmentaOptions} from "../../src/lib/interfaces";
+
 import * as faker from "faker";
 import "expect-more-jest";
 import {endTimer, startTimer, shouldShowTimes} from "../timer";
 import SparseBuffer from "../../src/lib/sparse-buffer";
 import "../matchers";
-import { v4 as uuid } from "uuid";
-import { isUUID } from "../../src/lib/type-testers";
+import {v4 as uuid} from "uuid";
+import {isUUID} from "../../src/lib/type-testers";
+import {KeyGenerator} from "../../src/lib/key-generator";
+import {Redis as IRedis} from "ioredis";
+
+const Redis = require("ioredis");
 
 describe("Segmenta", () => {
   const keyPrefixes = [] as string[];
@@ -16,6 +21,7 @@ describe("Segmenta", () => {
   beforeAll(async () => {
     await clearTestKeys();
   });
+
   async function clearTestKeys() {
     const redis = new Redis();
     for (const prefix of keyPrefixes) {
@@ -25,9 +31,11 @@ describe("Segmenta", () => {
       }
     }
   }
+
   function segmentId() {
     return faker.random.alphaNumeric(32);
   }
+
   describe("construction", () => {
     it(`should construct without config, defaulting to localhost:6379`, () => {
       // Arrange
@@ -43,28 +51,56 @@ describe("Segmenta", () => {
     });
   });
 
-  describe(`put`, () => {
-    it(`should be able to add and remove as one atomic operation`, async () => {
+  describe(`add`, () => {
+    it(`should add bit values in first hunk`, async () => {
       // Arrange
       const
-        query = segmentId(),
+        segment = segmentId(),
+        ids = [1, 5, 7],
+        expected = 69,
         sut = create(),
-        operations = [
-          { add: 2 },
-          { add: 3 },
-          { del: 4 },
-        ],
-        expected = [2, 3];
-      await sut.add(query, [4]);
+        keyGenerator = new KeyGenerator(sut.prefix),
+        redis = new Redis();
       // Act
-      await sut.put(query, operations);
-      const result = await sut.get({ query });
+      await sut.add(segment, ids);
+      const
+        key = (await getHunkKeys(redis, keyGenerator.dataKeyFor(segment)))[0],
+        buffer = await redis.getBuffer(key);
       // Assert
-      expect(result.ids).toBeEquivalentTo(expected);
+      expect(buffer).toHaveLength(1);
+      expect(buffer[0]).toEqual(expected);
     });
   });
 
-  describe("get", () => {
+  describe(`del`, () => {
+    it(`should remove values from the segment`, async () => {
+      // Arrange
+      const
+        segment = segmentId(),
+        addIds = [1, 5, 7],
+        removeIds = [5, 7],
+        expected = 64,
+        sut = create(),
+        keyGenerator = new KeyGenerator(sut.prefix),
+        redis = new Redis();
+      // Act
+      await sut.add(segment, addIds);
+      await sut.del(segment, removeIds);
+      const
+        key = (await getHunkKeys(redis, keyGenerator.dataKeyFor(segment)))[0],
+        buffer = await redis.getBuffer(key);
+      // Assert
+      expect(buffer).toHaveLength(1);
+      expect(buffer[0]).toEqual(expected);
+    });
+  });
+
+  async function getHunkKeys(redis: IRedis, baseKey: string): Promise<string[]> {
+    const all = await redis.keys(`${baseKey}/*`);
+    return all.filter(k => !!k.match(/.*\/[0-9]+[-][0-9]+$/));
+  }
+
+  describe(`get`, () => {
     describe(`when no segment data defined`, () => {
       it(`should return an empty array`, async () => {
         // Arrange
@@ -72,7 +108,7 @@ describe("Segmenta", () => {
           sut = create(),
           query = segmentId();
         // Act
-        const result = await sut.get({ query });
+        const result = await sut.get({query});
         // Assert
         expect(result.ids).toBeDefined();
         expect(result.ids).toBeEmptyArray();
@@ -86,7 +122,7 @@ describe("Segmenta", () => {
           query = segmentId();
         // Act
         await sut.add(query, [2]);
-        const result = await sut.get({ query });
+        const result = await sut.get({query});
         // Assert
         expect(result.ids).toEqual([2]);
       });
@@ -97,7 +133,7 @@ describe("Segmenta", () => {
           query = segmentId();
         // Act
         await sut.add(query, [1, 7]);
-        const result = await sut.get({ query });
+        const result = await sut.get({query});
         // Assert
         expect(result.ids).toEqual([1, 7]);
       });
@@ -110,7 +146,7 @@ describe("Segmenta", () => {
           query = segmentId();
         // Act
         await sut1.add(query, ids);
-        const result = await sut2.get({ query });
+        const result = await sut2.get({query});
         // Assert
         expect(result.ids).toEqual(ids);
       });
@@ -119,11 +155,11 @@ describe("Segmenta", () => {
         // Arrange
         const
           sut = create(),
-          values = [ 0, 1, 1025, 41960, 41961],
+          values = [0, 1, 1025, 41960, 41961],
           query = "defaultChunkSize";
         // Act
         await sut.add(query, values);
-        const result = await sut.get({ query });
+        const result = await sut.get({query});
         const buffer = await sut.getBuffer(query);
         // Assert
         expect(result.ids).toEqual(values);
@@ -144,7 +180,7 @@ describe("Segmenta", () => {
           query = "smallSets";
         // Act
         await sut.add(query, source);
-        const result = await sut.get({ query });
+        const result = await sut.get({query});
         // Assert
         expect(result.ids).toEqual(source);
       });
@@ -159,7 +195,7 @@ describe("Segmenta", () => {
         const
           sut = create(),
           query = "large-speed-test",
-          range5 = { min: 1, max: 2 },
+          range5 = {min: 1, max: 2},
           accept = (i: number) => faker.random.number(range5) === 1,
           label0 = "generating +- 1 000 000 ids";
         startTimer(label0);
@@ -181,7 +217,7 @@ describe("Segmenta", () => {
         // await sut.add(segment, copy);
         endTimer(label1);
         startTimer(label2);
-        const result = await sut.get({ query });
+        const result = await sut.get({query});
         endTimer(label2);
         // Assert
 
@@ -207,9 +243,9 @@ describe("Segmenta", () => {
             expected = [3];
           await sut1.add(query, expected);
           // Act
-          const result1 = await sut1.get({ query });
+          const result1 = await sut1.get({query});
           await sut1.add(query, [5]);
-          const result2 = await sut2.get({ query: result1.resultSetId });
+          const result2 = await sut2.get({query: result1.resultSetId});
           // Assert
           expect(result1.ids).toEqual(expected);
           expect(result2.ids).toEqual(expected);
@@ -218,13 +254,13 @@ describe("Segmenta", () => {
         it(`should expire the snapshot based on provided ttl`, async () => {
           // Arrange
           const
-            sut = create({ resultsTTL: 1 }),
+            sut = create({resultsTTL: 1}),
             id = segmentId();
           await sut.add(id, [3, 5]);
-          const originalResults = await sut.get({ query: id });
+          const originalResults = await sut.get({query: id});
           await sleep(1100);
           // Act
-          await expect(sut.get({ query: originalResults.resultSetId })).rejects.toThrow(
+          await expect(sut.get({query: originalResults.resultSetId})).rejects.toThrow(
             `result set ${originalResults.resultSetId} not found (expired perhaps?)`
           );
           // Assert
@@ -263,7 +299,28 @@ describe("Segmenta", () => {
     });
   });
 
-  function create(config?: ISegmentaOptions)  {
+  describe(`put`, () => {
+    it(`should be able to add and remove as one atomic operation`, async () => {
+      // Arrange
+      const
+        query = segmentId(),
+        sut = create(),
+        operations = [
+          {add: 2},
+          {add: 3},
+          {del: 4},
+        ],
+        expected = [2, 3];
+      await sut.add(query, [4]);
+      // Act
+      await sut.put(query, operations);
+      const result = await sut.get({query});
+      // Assert
+      expect(result.ids).toBeEquivalentTo(expected);
+    });
+  });
+
+  function create(config?: ISegmentaOptions) {
     const result = new Segmenta(config);
     keyPrefixes.push(result.prefix);
     return result;
