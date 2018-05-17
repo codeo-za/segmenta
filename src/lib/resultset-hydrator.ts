@@ -11,6 +11,9 @@ export interface IResultSetHydratorOptions {
 
 export class ResultSetHydrator {
 
+  public get ttl() {
+    return this._ttl;
+  }
   private readonly _redis: Redis;
   private readonly _keyGenerator: KeyGenerator;
   private readonly _ttl: number;
@@ -29,7 +32,7 @@ export class ResultSetHydrator {
       const key = `${baseKey}/${hunk.first}`;
       query = query.set(key, hunk.buffer).expire(key, this._ttl);
     }
-    await this._setExpires(baseKey, query).exec();
+    await this._setExpiresInfo(baseKey, query).exec();
   }
 
   public async rehydrate(resultSetId: string): Promise<SparseBuffer> {
@@ -37,7 +40,7 @@ export class ResultSetHydrator {
       baseKey = this._keyGenerator.resultSetKeyFor(resultSetId),
       expires = await this._redis.get(`${baseKey}/expires`);
     if (!expires) {
-      throw new Error(`result set ${resultSetId} has expired`);
+      throw new Error(`result set ${resultSetId} not found (expired perhaps?)`);
     }
     const
       keys = await this._redis.keys(`${baseKey}/*`),
@@ -53,14 +56,14 @@ export class ResultSetHydrator {
       }
       const buffer = await this._redis.getBuffer(key);
       // accessing the result-set extends the expiry date for that resultset
-      query = query.expire(key, this._ttl)
+      query = query.expire(key, this._ttl);
       result.or(buffer, offset);
     }
-    await this._setExpires(baseKey, query).exec();
+    await this._setExpiresInfo(baseKey, query).exec();
     return result;
   }
 
-  private _setExpires(baseKey: string, query: Pipeline) {
+  private _setExpiresInfo(baseKey: string, query: Pipeline) {
     const key = `${baseKey}/expires`,
       expires = new Date();
     expires.setSeconds(expires.getSeconds() + this._ttl);

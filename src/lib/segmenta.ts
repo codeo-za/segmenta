@@ -21,6 +21,10 @@ export default class Segmenta {
   private readonly _keyGenerator: KeyGenerator;
   private readonly _resultsetHydrator: ResultSetHydrator;
 
+  public get resultsTTL() {
+    return this._resultsetHydrator.ttl;
+  }
+
   public get prefix(): string {
     return this._prefix;
   }

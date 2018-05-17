@@ -215,19 +215,30 @@ describe("Segmenta", () => {
           expect(result2.ids).toEqual(expected);
         });
 
-        xit(`should expire the snapshot based on provided ttl`, async () => {
+        it(`should expire the snapshot based on provided ttl`, async () => {
           // Arrange
           const
             sut = create({ resultsTTL: 1 }),
             id = segmentId();
           await sut.add(id, [3, 5]);
           const originalResults = await sut.get({ query: id });
-          await sleep(1500);
+          await sleep(1100);
           // Act
-          expect(
-            async () => await sut.get({ query: originalResults.resultSetId })
-          ).toThrow();
+          await expect(sut.get({ query: originalResults.resultSetId })).rejects.toThrow(
+            `result set ${originalResults.resultSetId} not found (expired perhaps?)`
+          );
           // Assert
+        });
+
+        it(`should default expiry to one day`, () => {
+          // Arrange
+          const
+            oneDay = 86400,
+            sut = create();
+          // Act
+          const result = sut.resultsTTL;
+          // Assert
+          expect(result).toEqual(oneDay);
         });
 
         async function sleep(ms: number): Promise<void> {
