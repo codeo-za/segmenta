@@ -25,8 +25,8 @@ export interface IHunk {
 }
 
 export class Hunk implements IHunk {
-  private _buffer: Buffer;
-  private _offset: number;
+  private readonly _buffer: Buffer;
+  private readonly _offset: number;
 
   get buffer() {
     return this._buffer;

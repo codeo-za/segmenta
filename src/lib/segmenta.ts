@@ -1,41 +1,26 @@
-import {Redis, RedisOptions} from "ioredis";
-// import { RedisClient } from "./redis-client";
-const RedisClient = require("ioredis");
-const MAX_OPERATIONS_PER_BATCH = 200000;
-const DEFAULT_BUCKET_SIZE = 41960;
+import {Redis} from "ioredis";
+import {v4 as uuid} from "uuid";
+import {isUUID, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
 import SparseBuffer from "./sparse-buffer";
 import {Hunk, IHunk} from "./hunk";
 import * as _ from "lodash";
 import {setup} from "./set-bits";
+import {ResultSetHydrator} from "./resultset-hydrator";
+import {KeyGenerator} from "./key-generator";
+import {MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL} from "./constants";
+import {ISegmentResults, SegmentResults} from "./segment-results";
+import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentGetOptions} from "./interfaces";
 
-export interface ISegmentaOptions {
-  redisOptions?: RedisOptions;
-  segmentsPrefix?: string;
-  bucketSize?: number;
-}
-
-interface IBitGroup {
-  [identifier: string]: number[];
-}
-
-export interface IAddOperation {
-  add: number;
-}
-
-export interface IDelOperation {
-  del: number;
-}
-
-export interface ISegmentResult {
-  results: number[];
-  next: () => ISegmentResult;
-}
+const RedisClient = require("ioredis");
 
 export default class Segmenta {
   private readonly _redis: Redis;
   private _luaFunctionsSetup: boolean = false;
 
   private readonly _prefix: string;
+  private readonly _keyGenerator: KeyGenerator;
+  private readonly _resultsetHydrator: ResultSetHydrator;
+
   public get prefix(): string {
     return this._prefix;
   }
@@ -58,42 +43,63 @@ export default class Segmenta {
     }
     _.set(options as object, "redisOptions.return_buffers", true);
     this._redis = new RedisClient(_.get(options, "redisOptions"));
+    this._keyGenerator = new KeyGenerator(this._prefix);
+    this._resultsetHydrator = new ResultSetHydrator({
+      redis: this._redis,
+      keyGenerator: this._keyGenerator,
+      ttl: _.get(options, "resultsTTL") || DEFAULT_RESULTSET_TTL
+    });
   }
 
   public async getBuffer(...segments: string[]): Promise<SparseBuffer> {
     const
-      baseKeys = segments.map(s => this._keyForSegment(s)),
+      baseKeys = segments.map(s => this._dataKeyForSegment(s)),
       segmentKeys = await this._getSegmentKeys(...baseKeys),
       result = new SparseBuffer(),
-      fetchers = segmentKeys.map(s => this._retrieveSegment(s)),
+      fetchers = segmentKeys.map(s => this._retrieveBucket(s)),
       hunkResults = await Promise.all(fetchers),
       hunks = _.orderBy(_.filter(hunkResults, h => !!h) as IHunk[], h => h.first);
     _.forEach(hunks, h => result.or(h));
     return result;
   }
 
-  public async get(segment: string, skip: number = 0, take: number = 100000): Promise<number[]> {
+  public async get(options: ISegmentGetOptions): Promise<ISegmentResults> {
     const
-      buffer = await this.getBuffer(segment);
-    return buffer.getOnBitPositions(skip, take);
+      isRequery = isUUID(options.query),
+      buffer = isRequery
+        ? await this._rehydrate(options.query)
+        : await this.getBuffer(options.query),
+      skip = options.skip || 0,
+      take = options.take || -1,
+      resultSetId = uuid(),
+      ids = buffer.getOnBitPositions(options.skip || 0, take),
+      total = ids.length,
+      result = new SegmentResults(
+        resultSetId,
+        ids.slice(skip, take === -1 ? ids.length : take),
+        skip,
+        total);
+    if (!isRequery) {
+      await this._dehydrate(resultSetId, buffer);
+    }
+    return result;
+  }
+
+  private async _dehydrate(id: string, data: SparseBuffer): Promise<void> {
+    await this._resultsetHydrator.dehydrate(id, data);
+  }
+
+  private async _rehydrate(resultSetId: string): Promise<SparseBuffer> {
+    return await this._resultsetHydrator.rehydrate(resultSetId);
   }
 
   public async add(segment: string, ids: number[]): Promise<void> {
     const ops = ids.map(i => ({add: i}));
-    await this._tryDo(() => this._tryPut(segment, ops));
+    await tryDo(() => this._tryPut(segment, ops));
   }
 
   public async put(segment: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
-    await this._tryDo(() => this._tryPut(segment, operations));
-  }
-
-  private _validateMaxOperationLength(ops: (IAddOperation | IDelOperation | number)[]): void {
-    if (ops.length > MAX_OPERATIONS_PER_BATCH) {
-      throw new Error([
-        `Cannot process more than ${MAX_OPERATIONS_PER_BATCH}`,
-        `operations per batch for fear of redis error 'invalid multibulk length'`
-      ].join(""));
-    }
+    await tryDo(() => this._tryPut(segment, operations));
   }
 
   private async _setupLuaFunctions() {
@@ -103,45 +109,24 @@ export default class Segmenta {
     await setup(this._redis);
   }
 
-  private async _tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        await func();
-        return;
-      } catch (e) {
-        if (i === maxAttempts - 1) {
-          throw e;
-        }
-        console.log("retrying...");
-      }
-    }
-  }
-
-  private _isAdd(op: any): op is IAddOperation {
-    return !isNaN(op.add);
-  }
-
-  private _isDel(op: any): op is IDelOperation {
-    return !isNaN(op.del);
-  }
-
   private async _tryPut(segment: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
+    validateMaxOperationLength(operations);
     await this._setupLuaFunctions();
     const
-      baseKey = this._keyForSegment(segment),
+      baseKey = this._dataKeyForSegment(segment),
       cmds = [] as (string | number)[];
 
-    let lastSegmentName;
+    let lastSegmentName = null;
 
     for (const op of operations) {
-      const [id, val] = this._isAdd(op)
+      const [id, val] = isAdd(op)
         ? [op.add, 1]
-        : (this._isDel(op) ? [op.del, 0] : [-1, -1]);
+        : (isDel(op) ? [op.del, 0] : [-1, -1]);
 
       if (val < 0) {
         continue; // throw?
       }
-      const segmentName = this._generateSegmentNameFor(id)
+      const segmentName = this._generateSegmentNameFor(id);
       if (segmentName !== lastSegmentName) {
         cmds.push(`${baseKey}/${segmentName}`);
         lastSegmentName = segmentName;
@@ -149,38 +134,17 @@ export default class Segmenta {
       const offset = id % this._bucketSize;
       cmds.push(offset, val);
     }
-
     await (this._redis as any).setbits(cmds);
-
-    // let multi = this._redis.multi();
-    // for (const op of operations) {
-    //   const
-    //     isAdd = this._isAdd(op),
-    //     id = this._isAdd(op) ? op.add : (this._isDel(op) ? op.del : -1);
-    //   if (id < 0) {
-    //     continue; // TODO: throw? log?
-    //   }
-    //   const
-    //     segmentName = this._generateSegmentNameFor(id),
-    //     key = `${baseKey}/${segmentName}`,
-    //     offset = id % this._bucketSize;
-    //   multi = multi.setbit(key, offset, isAdd ? 1 : 0);
-    //   if (touchedSegments.indexOf(segmentName) === -1) {
-    //     touchedSegments.push(segmentName);
-    //   }
-    // }
-    // await multi
-    //   .sadd(`${baseKey}/index`, ...touchedSegments.map(s => `${baseKey}/${s}`))
-    //   .exec();
   }
 
-  private async _retrieveSegment(segmentKey: string): Promise<IHunk | undefined> {
+  private async _retrieveBucket(segmentKey: string): Promise<IHunk | undefined> {
     const buffer = await this._redis.getBuffer(segmentKey);
     if (!buffer) {
       return undefined;
     }
-    const parts = segmentKey.split("/"),
-      [start, end] = parts[parts.length - 1].split("-").map(parseInt);
+    const
+      parts = segmentKey.split("/"),
+      [start] = parts[parts.length - 1].split("-").map(parseInt);
     return new Hunk(buffer, start / 8);
   }
 
@@ -195,7 +159,30 @@ export default class Segmenta {
     return `${lower}-${upper}`;
   }
 
-  private _keyForSegment(segment: string): string {
-    return `${this._prefix}/${segment}`;
+  private _dataKeyForSegment(segment: string): string {
+    return this._keyGenerator.dataKeyFor(segment);
+  }
+}
+
+function validateMaxOperationLength(ops: (IAddOperation | IDelOperation | number)[]): void {
+  if (ops.length > MAX_OPERATIONS_PER_BATCH) {
+    throw new Error([
+      `Cannot process more than ${MAX_OPERATIONS_PER_BATCH}`,
+      `operations per batch for fear of redis error 'invalid multibulk length'`
+    ].join(""));
+  }
+}
+
+async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      await func();
+      return;
+    } catch (e) {
+      if (i === maxAttempts - 1) {
+        throw e;
+      }
+      console.log("retrying...");
+    }
   }
 }

@@ -537,19 +537,37 @@ describe("sparse-buffer", () => {
         }
       });
 
-      xdescribe(`paging`, () => {
-        it(`should grab the first number of multi-byte with only two numbers`, () => {
+      describe(`paging`, () => {
+        it(`should paginate two numbers on the same byte`, () => {
+          // Arrange
+          const
+            sut = create(),
+            first = new Buffer([64 | 32]),
+            expected1 = [1],
+            expected2 = [2];
+          // Act
+          sut.append(first);
+          const result1 = sut.getOnBitPositions(0, 1);
+          const result2 = sut.getOnBitPositions(1, 1)
+          // Assert
+          expect(result1).toEqual(expected1);
+          expect(result2).toEqual(expected2);
+        });
+        it(`should paginate two numbers on different hunks`, () => {
           // Arrange
           const
             sut = create(),
             first = new Buffer([64]),
             second = new Buffer([32]),
-            expected = [1];
+            expected1 = [1],
+            expected2 = [10];
           // Act
           sut.append(first).append(second);
-          const result = sut.getOnBitPositions(0, 1);
+          const result1 = sut.getOnBitPositions(0, 1);
+          const result2 = sut.getOnBitPositions(1, 1)
           // Assert
-          expect(result).toEqual(expected);
+          expect(result1).toEqual(expected1);
+          expect(result2).toEqual(expected2);
         });
       });
     });

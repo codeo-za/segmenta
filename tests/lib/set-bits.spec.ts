@@ -32,7 +32,13 @@ describe(`set-bits`, () => {
   });
   afterEach(async () => {
     const redis = new Redis();
-    await redis.del("set_bits_test1");
-    await redis.del("set_bits_test2");
+    for (const key of [
+      "set_bits_test1",
+      "set_bits_test1/index", // the lua setbits function will auto-add index refs
+      "set_bits_test2",
+      "set_bits_test2/index"
+      ]) {
+      await redis.del(key);
+    }
   });
 });
