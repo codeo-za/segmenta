@@ -3,6 +3,9 @@
   "version": "0.0.2-0",
   "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
   "main": "index.js",
+  "files": [
+    "dist/src/**/*"
+  ],
   "scripts": {
     "test": "jest",
     "lint": "tslint -p .",
