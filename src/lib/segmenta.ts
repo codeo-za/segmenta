@@ -1,4 +1,4 @@
-import {Redis} from "ioredis";
+import {Redis as IRedis} from "ioredis";
 import {v4 as uuid} from "uuid";
 import {isUUID, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
 import SparseBuffer from "./sparse-buffer";
@@ -11,10 +11,10 @@ import {MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL} fr
 import {ISegmentResults, SegmentResults} from "./segment-results";
 import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentGetOptions} from "./interfaces";
 
-const RedisClient = require("ioredis");
+const Redis = require("ioredis");
 
 export default class Segmenta {
-  private readonly _redis: Redis;
+  private readonly _redis: IRedis;
   private _luaFunctionsSetup: boolean = false;
 
   private readonly _prefix: string;
@@ -46,7 +46,10 @@ export default class Segmenta {
       this._bucketSize -= mod; // segments must be byte-aligned to avoid confusion
     }
     _.set(options as object, "redisOptions.return_buffers", true);
-    this._redis = new RedisClient(_.get(options, "redisOptions"));
+    this._redis = new Redis(_.get(options, "redisOptions"));
+    this._redis.on("connect", async () => {
+      await this._setupLuaFunctions();
+    });
     this._keyGenerator = new KeyGenerator(this._prefix);
     this._resultsetHydrator = new ResultSetHydrator({
       redis: this._redis,
