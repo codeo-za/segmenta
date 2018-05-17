@@ -1,6 +1,6 @@
 {
   "name": "segmenta",
-  "version": "1.0.0",
+  "version": "0.0.2-0",
   "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "lint": "tslint -p .",
     "autotest": "jest --watch",
     "build": "tsc",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "unleash": "unleash"
   },
   "jest": {
     "transform": {
@@ -72,6 +73,7 @@
     "tslint": "^5.10.0",
     "tslint-consistent-codestyle": "^1.13.0",
     "typescript": "^2.8.3",
+    "unleash": "^2.0.1",
     "uuid": "^3.2.1"
   }
 }
