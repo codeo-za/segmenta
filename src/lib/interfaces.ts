@@ -14,7 +14,7 @@ export interface IDelOperation {
   del: number;
 }
 
-export interface ISegmentGetOptions {
+export interface ISegmentQueryOptions {
   query: string;
   skip?: number;
   take?: number;

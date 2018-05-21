@@ -22,9 +22,9 @@ export interface ISparseBuffer {
   dump(): number[];
 
   // returns the byte value at the provided offset
-  // - if the offset is within a hunk, you get the hunk's mapped value
-  // - if the offset is between hunks (ie in the virtual space), you get zero
-  // - if the offset is outside of the virtual space, you get undefined
+  // - if the offset is within a hunk, you query the hunk's mapped value
+  // - if the offset is between hunks (ie in the virtual space), you query zero
+  // - if the offset is outside of the virtual space, you query undefined
   at(index: number): number | undefined;
 
   // appends the bytes (equivalent to .or or .and with offset at the current virtual length)
@@ -119,7 +119,7 @@ export default class SparseBuffer implements ISparseBuffer {
   /*
    * Returns the byte value at the provided virtual address
    *
-   * @param {number} index The virtual address to get the value at
+   * @param {number} index The virtual address to query the value at
    */
   public at(index: number): number | undefined {
     const hunk = this._findHunkAt(index);

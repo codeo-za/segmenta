@@ -1,6 +1,6 @@
 import {Redis as IRedis} from "ioredis";
 import {v4 as uuid} from "uuid";
-import {isUUID, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
+import {isUUID, isString, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
 import SparseBuffer from "./sparse-buffer";
 import {Hunk, IHunk} from "./hunk";
 import * as _ from "lodash";
@@ -9,7 +9,7 @@ import {ResultSetHydrator} from "./resultset-hydrator";
 import {KeyGenerator} from "./key-generator";
 import {MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL} from "./constants";
 import {ISegmentResults, SegmentResults} from "./segment-results";
-import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentGetOptions} from "./interfaces";
+import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentQueryOptions} from "./interfaces";
 
 const Redis = require("ioredis");
 
@@ -70,8 +70,9 @@ export class Segmenta {
     return result;
   }
 
-  public async get(options: ISegmentGetOptions): Promise<ISegmentResults> {
+  public async query(qry: ISegmentQueryOptions | string): Promise<ISegmentResults> {
     const
+      options = (isString(qry) ? { query: qry} : qry) as ISegmentQueryOptions,
       isRequery = isUUID(options.query),
       buffer = isRequery
         ? await this._rehydrate(options.query)

@@ -1,20 +1,19 @@
 {
   "name": "segmenta",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
-    "publish/**/*"
+    "dist/**/*"
   ],
   "scripts": {
     "test": "jest",
     "lint": "tslint -p .",
     "autotest": "jest --watch",
     "prebuild": "rimraf dist",
-    "build": "tsc",
+    "build": "gulp build",
     "clean": "rimraf dist",
-    "preunleash": "gulp pre-publish",
     "unleash": "unleash",
     "gulp": "gulp"
   },
@@ -74,6 +73,7 @@
     "faker": "^4.1.0",
     "gulp": "^3.9.1",
     "gulp-help": "^1.6.1",
+    "gulp-typescript": "^4.0.2",
     "ioredis": "^3.2.2",
     "jest": "^22.4.3",
     "node-ts": "^2.1.2",

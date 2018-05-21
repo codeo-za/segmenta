@@ -100,7 +100,7 @@ describe("Segmenta", () => {
     return all.filter(k => !!k.match(/.*\/[0-9]+[-][0-9]+$/));
   }
 
-  describe(`get`, () => {
+  describe(`query`, () => {
     describe(`when no segment data defined`, () => {
       it(`should return an empty array`, async () => {
         // Arrange
@@ -108,7 +108,7 @@ describe("Segmenta", () => {
           sut = create(),
           query = segmentId();
         // Act
-        const result = await sut.get({query});
+        const result = await sut.query({query});
         // Assert
         expect(result.ids).toBeDefined();
         expect(result.ids).toBeEmptyArray();
@@ -122,7 +122,7 @@ describe("Segmenta", () => {
           query = segmentId();
         // Act
         await sut.add(query, [2]);
-        const result = await sut.get({query});
+        const result = await sut.query({query});
         // Assert
         expect(result.ids).toEqual([2]);
       });
@@ -133,7 +133,7 @@ describe("Segmenta", () => {
           query = segmentId();
         // Act
         await sut.add(query, [1, 7]);
-        const result = await sut.get({query});
+        const result = await sut.query({query});
         // Assert
         expect(result.ids).toEqual([1, 7]);
       });
@@ -146,7 +146,7 @@ describe("Segmenta", () => {
           query = segmentId();
         // Act
         await sut1.add(query, ids);
-        const result = await sut2.get({query});
+        const result = await sut2.query({query});
         // Assert
         expect(result.ids).toEqual(ids);
       });
@@ -159,7 +159,7 @@ describe("Segmenta", () => {
           query = "defaultChunkSize";
         // Act
         await sut.add(query, values);
-        const result = await sut.get({query});
+        const result = await sut.query({query});
         const buffer = await sut.getBuffer(query);
         // Assert
         expect(result.ids).toEqual(values);
@@ -180,7 +180,20 @@ describe("Segmenta", () => {
           query = "smallSets";
         // Act
         await sut.add(query, source);
-        const result = await sut.get({query});
+        const result = await sut.query({query});
+        // Assert
+        expect(result.ids).toEqual(source);
+      });
+
+      it(`should allow simple fetch-all query with only the segment id`, async () => {
+        // Arrange
+        const
+          sut = create(),
+          source = [ 3, 17 ],
+          id = segmentId();
+        // Act
+        await sut.add(id, source);
+        const result = await sut.query(id);
         // Assert
         expect(result.ids).toEqual(source);
       });
@@ -217,7 +230,7 @@ describe("Segmenta", () => {
         // await sut.add(segment, copy);
         endTimer(label1);
         startTimer(label2);
-        const result = await sut.get({query});
+        const result = await sut.query({query});
         endTimer(label2);
         // Assert
 
@@ -243,9 +256,9 @@ describe("Segmenta", () => {
             expected = [3];
           await sut1.add(query, expected);
           // Act
-          const result1 = await sut1.get({query});
+          const result1 = await sut1.query({query});
           await sut1.add(query, [5]);
-          const result2 = await sut2.get({query: result1.resultSetId});
+          const result2 = await sut2.query({query: result1.resultSetId});
           // Assert
           expect(result1.ids).toEqual(expected);
           expect(result2.ids).toEqual(expected);
@@ -257,10 +270,10 @@ describe("Segmenta", () => {
             sut = create({resultsTTL: 1}),
             id = segmentId();
           await sut.add(id, [3, 5]);
-          const originalResults = await sut.get({query: id});
+          const originalResults = await sut.query({query: id});
           await sleep(1100);
           // Act
-          await expect(sut.get({query: originalResults.resultSetId})).rejects.toThrow(
+          await expect(sut.query({query: originalResults.resultSetId})).rejects.toThrow(
             `result set ${originalResults.resultSetId} not found (expired perhaps?)`
           );
           // Assert
@@ -273,9 +286,9 @@ describe("Segmenta", () => {
             id = segmentId();
           await sut.add(id, [4, 7]);
           // Act
-          const results = await sut.get({ query: id });
+          const results = await sut.query({ query: id });
           await sut.dispose(results.resultSetId);
-          await expect(sut.get({query: results.resultSetId}))
+          await expect(sut.query({query: results.resultSetId}))
             .rejects.toThrow(`result set ${results.resultSetId} not found (expired perhaps?)`);
           // Assert
         });
@@ -328,7 +341,7 @@ describe("Segmenta", () => {
       await sut.add(query, [4]);
       // Act
       await sut.put(query, operations);
-      const result = await sut.get({query});
+      const result = await sut.query({query});
       // Assert
       expect(result.ids).toBeEquivalentTo(expected);
     });
@@ -348,7 +361,7 @@ describe("Segmenta", () => {
         sut1 = create();
       // Act
       await sut1.put(segment, commands);
-      const result = await sut1.get({ query: segment });
+      const result = await sut1.query({ query: segment });
       // Assert
       expect(result.ids).toEqual(expected);
     });

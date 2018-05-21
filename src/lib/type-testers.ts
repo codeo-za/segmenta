@@ -21,3 +21,7 @@ export function isAddOperation(op: any): op is IAddOperation {
 export function isDelOperation(op: any): op is IDelOperation {
   return !isNaN(op.del);
 }
+
+export function isString(x: any): x is string {
+  return typeof x === "string";
+}

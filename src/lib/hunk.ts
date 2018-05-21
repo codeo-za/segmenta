@@ -14,7 +14,7 @@ export interface IHunk {
   // set a value at virtual address idx
   set(idx: number, value: number): void;
 
-  // get a value at virtual address idx
+  // query a value at virtual address idx
   at(idx: number): number;
 
   // determines if this hunk covers the virtual address idx
