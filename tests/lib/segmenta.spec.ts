@@ -1,4 +1,4 @@
-import { Segmenta } from "../../src/lib/segmenta";
+import {Segmenta} from "../../src/lib/segmenta";
 import {ISegmentaOptions} from "../../src/lib/interfaces";
 
 import * as faker from "faker";
@@ -10,6 +10,7 @@ import {v4 as uuid} from "uuid";
 import {isUUID} from "../../src/lib/type-testers";
 import {KeyGenerator} from "../../src/lib/key-generator";
 import {Redis as IRedis} from "ioredis";
+import * as _ from "lodash";
 
 const Redis = require("ioredis");
 
@@ -189,7 +190,7 @@ describe("Segmenta", () => {
         // Arrange
         const
           sut = create(),
-          source = [ 3, 17 ],
+          source = [3, 17],
           id = segmentId();
         // Act
         await sut.add(id, source);
@@ -286,7 +287,7 @@ describe("Segmenta", () => {
             id = segmentId();
           await sut.add(id, [4, 7]);
           // Act
-          const results = await sut.query({ query: id });
+          const results = await sut.query({query: id});
           await sut.dispose(results.resultSetId);
           await expect(sut.query({query: results.resultSetId}))
             .rejects.toThrow(`result set ${results.resultSetId} not found (expired perhaps?)`);
@@ -361,14 +362,16 @@ describe("Segmenta", () => {
         sut1 = create();
       // Act
       await sut1.put(segment, commands);
-      const result = await sut1.query({ query: segment });
+      const result = await sut1.query({query: segment});
       // Assert
       expect(result.ids).toEqual(expected);
     });
   });
 
   function create(config?: ISegmentaOptions) {
-    const result = new Segmenta(config);
+    const result = new Segmenta(_.assign({}, {
+      segmentsPrefix: "segmenta-tests"
+    }, config));
     keyPrefixes.push(result.prefix);
     return result;
   }
