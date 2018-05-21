@@ -1,4 +1,4 @@
-import Segmenta from "../../src/lib/segmenta";
+import { Segmenta } from "../../src/lib/segmenta";
 import {ISegmentaOptions} from "../../src/lib/interfaces";
 
 import * as faker from "faker";
@@ -273,7 +273,7 @@ describe("Segmenta", () => {
             id = segmentId();
           await sut.add(id, [4, 7]);
           // Act
-          const results = await sut.get(id);
+          const results = await sut.get({ query: id });
           await sut.dispose(results.resultSetId);
           await expect(sut.get({query: results.resultSetId}))
             .rejects.toThrow(`result set ${results.resultSetId} not found (expired perhaps?)`);

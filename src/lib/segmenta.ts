@@ -13,7 +13,7 @@ import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentGetOptions} from
 
 const Redis = require("ioredis");
 
-class Segmenta {
+export class Segmenta {
   private readonly _redis: IRedis;
   private _luaFunctionsSetup: boolean = false;
 
@@ -203,4 +203,5 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
   }
 }
 
-module.exports = Segmenta;
+// export default Segmenta;
+// module.exports = Segmenta;

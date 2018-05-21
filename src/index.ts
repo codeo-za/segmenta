@@ -1,2 +1,2 @@
-import Segmenta from "./lib/segmenta";
-export default Segmenta;
+import { Segmenta } from "./lib/segmenta";
+export = Segmenta;
