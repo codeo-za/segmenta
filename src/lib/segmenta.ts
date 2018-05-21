@@ -13,7 +13,7 @@ import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentGetOptions} from
 
 const Redis = require("ioredis");
 
-export default class Segmenta {
+class Segmenta {
   private readonly _redis: IRedis;
   private _luaFunctionsSetup: boolean = false;
 
@@ -104,6 +104,10 @@ export default class Segmenta {
   public async del(segmentId: string, ids: number[]): Promise<void> {
     const ops = ids.map(i => ({del: i}));
     await tryDo(() => this._tryPut(segmentId, ops));
+  }
+
+  public async dispose(resultSetId: string): Promise<void> {
+    await this._resultsetHydrator.dispose(resultSetId);
   }
 
   private async _dehydrate(id: string, data: SparseBuffer): Promise<void> {
@@ -198,3 +202,5 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
     }
   }
 }
+
+module.exports = Segmenta;

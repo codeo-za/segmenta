@@ -266,6 +266,20 @@ describe("Segmenta", () => {
           // Assert
         });
 
+        it(`should allow deliberate disposal of snapshots`, async () => {
+          // Arrange
+          const
+            sut = create(),
+            id = segmentId();
+          await sut.add(id, [4, 7]);
+          // Act
+          const results = await sut.get(id);
+          await sut.dispose(results.resultSetId);
+          await expect(sut.get({query: results.resultSetId}))
+            .rejects.toThrow(`result set ${results.resultSetId} not found (expired perhaps?)`);
+          // Assert
+        });
+
         it(`should default expiry to one day`, () => {
           // Arrange
           const
@@ -317,6 +331,26 @@ describe("Segmenta", () => {
       const result = await sut.get({query});
       // Assert
       expect(result.ids).toBeEquivalentTo(expected);
+    });
+    it(`should facilitate multiple add / del commands, in order`, async () => {
+      // Arrange
+      const
+        segment = segmentId(),
+        commands = [
+          {add: 1},
+          {add: 3},
+          {add: 9},
+          {del: 1},
+          {add: 12},
+          {del: 3}
+        ],
+        expected = [9, 12],
+        sut1 = create();
+      // Act
+      await sut1.put(segment, commands);
+      const result = await sut1.get({ query: segment });
+      // Assert
+      expect(result.ids).toEqual(expected);
     });
   });
 

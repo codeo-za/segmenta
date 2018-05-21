@@ -14,6 +14,7 @@ export class ResultSetHydrator {
   public get ttl() {
     return this._ttl;
   }
+
   private readonly _redis: Redis;
   private readonly _keyGenerator: KeyGenerator;
   private readonly _ttl: number;
@@ -26,13 +27,18 @@ export class ResultSetHydrator {
 
   public async dehydrate(id: string, data: SparseBuffer): Promise<void> {
     const baseKey = this._keyGenerator.resultSetKeyFor(id);
-    let query = this._redis.multi();
-
-    for (const hunk of data.hunks) {
+    const query = data.hunks.reduce((q, hunk) => {
       const key = `${baseKey}/${hunk.first}`;
-      query = query.set(key, hunk.buffer).expire(key, this._ttl);
-    }
+      return q.set(key, hunk.buffer).expire(key, this._ttl);
+    }, this._redis.multi());
     await this._setExpiresInfo(baseKey, query).exec();
+  }
+
+  public async dispose(id: string): Promise<void> {
+    const
+      baseKey = this._keyGenerator.resultSetKeyFor(id),
+      keys = await this._redis.keys(`${baseKey}/*`);
+    await this._redis.del(...keys);
   }
 
   public async rehydrate(resultSetId: string): Promise<SparseBuffer> {
