@@ -21,12 +21,25 @@
     "transform": {
       "^.+\\.ts?$": "ts-jest"
     },
-    "testRegex": "./tests/.*\\.(test|spec)\\.(jsx?|tsx?)$",
+    "testMatch": [
+      "**/tests/**/*.spec.ts"
+    ],
+    "verbose": false,
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/",
+      "/\\.git/",
       "/.*\\.d\\.ts/",
-      "/.*_old__"
+      "/_old__$/",
+      "/\\.idea/",
+      "/\\.vscode/"
+    ],
+    "watchPathIgnorePatterns": [
+      "/dist/",
+      "/\\..*/",
+      "/_old__$/",
+      "/.*\\.d\\.ts/",
+      "/package.json/"
     ],
     "moduleFileExtensions": [
       "ts",

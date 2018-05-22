@@ -39,6 +39,27 @@ function and(a: number, b: number): number {
   return a & b;
 }
 
+/*
+  a    b    desired
+  1    1    0
+  1    0    1
+  0    1    0
+  0    0    0
+ */
+
+function not(a: number, b: number): number {
+  let
+    result = 0,
+    shift = 128;
+  while (shift) {
+    if ((a & shift) === shift && (b & shift) !== shift) {
+      result |= shift;
+    }
+    shift >>= 1;
+  }
+  return result;
+}
+
 export function isSparseBuffer(obj: any): obj is ISparseBuffer {
   if (obj instanceof SparseBuffer) {
     return true;
@@ -65,6 +86,12 @@ export default class SparseBuffer implements ISparseBuffer {
 
   private _hunks: IHunk[] = [];
 
+  constructor(bytes?: Buffer) {
+    if (!!bytes) {
+      this.or(bytes);
+    }
+  }
+
   /*
    * Logically ORs the given bytes with the current virtual bytes
    */
@@ -77,6 +104,12 @@ export default class SparseBuffer implements ISparseBuffer {
   public append(
     source: Buffer | IHunk | ISparseBuffer): ISparseBuffer {
     return this._consume(source, this.length, or);
+  }
+
+  public not(
+    source: Buffer | IHunk | ISparseBuffer,
+    offset?: number): ISparseBuffer {
+    return this._consume(source, offset || 0, not);
   }
 
   /*
@@ -158,7 +191,7 @@ export default class SparseBuffer implements ISparseBuffer {
           this._insertHunkPart(hunk, idx, intersection.first);
           idx += delta;
         }
-        intersection.set(idx, overlapTransform(hunk.at(idx), intersection.at(idx)));
+        intersection.set(idx, overlapTransform(intersection.at(idx), hunk.at(idx)));
         if (intersection.last === idx) {
           intersection = intersections.shift();
         }

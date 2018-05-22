@@ -195,6 +195,7 @@ describe("sparse-buffer", () => {
             });
           });
         });
+
         describe(`and`, () => {
           describe(`non-intersection`, () => {
             it(`should initialize with the given buffer when no existing buffer`, () => {
@@ -372,6 +373,7 @@ describe("sparse-buffer", () => {
           });
         });
       });
+
       describe(`acting on SparseBuffers`, () => {
         describe(`or`, () => {
           it(`should be able to consume simple, not-overlapping SparseBuffer`, () => {
@@ -443,6 +445,68 @@ describe("sparse-buffer", () => {
             // Assert
             expect(sut).toMatchArray(expected);
           });
+        });
+      });
+    });
+
+    describe(`not`, () => {
+      [
+        { l: 0b00000001,
+          r: 0b00000001,
+          e: 0b00000000 },
+
+        { l: 0b00000010,
+          r: 0b00000001,
+          e: 0b00000010 },
+
+        { l: 0b00000011,
+          r: 0b00000001,
+          e: 0b00000010 },
+
+        { l: 0b00000011,
+          r: 0b00000010,
+          e: 0b00000001 },
+
+        { l: 0b10101010,
+          r: 0b01010101,
+          e: 0b10101010 },
+
+        { l: 0b10101011,
+          r: 0b11011101,
+          e: 0b00100010 },
+
+      ].forEach(tc => {
+        it(`should be able to negate with a single-byte Buffer: ${tc.l} ! ${tc.r} => ${tc.e}`, () => {
+          // Arrange
+          const
+            left = new Buffer([tc.l]),
+            right = new Buffer([tc.r]),
+            expected = [tc.e],
+            sut = create(new Hunk(left, 0));
+          // Act
+          sut.not(right);
+          // Assert
+          expect(sut).toMatchArray(expected);
+        });
+      });
+
+      [
+        (bytes: number[]) => new Buffer(bytes),
+        (bytes: number[]) => new Hunk(new Buffer(bytes), 0),
+        (bytes: number[]) => new SparseBuffer(new Buffer(bytes))
+      ].forEach(generator => {
+        it(`should be able to negate with a multi-byte buffer`, () => {
+          // Arrange
+          const
+            l = [ 0b01011010, 0b10010110 ],
+            r = [ 0b10110100, 0b01011010 ],
+            e = [ 0b01001010, 0b10000100 ],
+            left = new SparseBuffer(new Buffer(l)),
+            right = generator(r);
+          // Act
+          left.not(right);
+          // Assert
+          expect(left).toMatchArray(e);
         });
       });
     });
