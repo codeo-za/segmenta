@@ -8,8 +8,15 @@ import {setup} from "./set-bits";
 import {ResultSetHydrator} from "./resultset-hydrator";
 import {KeyGenerator} from "./key-generator";
 import {MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL} from "./constants";
-import {ISegmentResults, SegmentResults} from "./segment-results";
-import {IAddOperation, IDelOperation, ISegmentaOptions, ISegmentQueryOptions} from "./interfaces";
+import {SegmentResults} from "./segment-results";
+import {
+  IAddOperation,
+  IDelOperation,
+  ISanitizedQueryOptions,
+  ISegmentaOptions,
+  ISegmentQueryOptions,
+  ISegmentResults
+} from "./interfaces";
 
 const Redis = require("ioredis");
 
@@ -72,22 +79,23 @@ export class Segmenta {
 
   public async query(qry: ISegmentQueryOptions | string): Promise<ISegmentResults> {
     const
-      options = (isString(qry) ? { query: qry} : qry) as ISegmentQueryOptions,
+      options = sanitizeOptions(qry),
       isRequery = isUUID(options.query),
       buffer = isRequery
         ? await this._rehydrate(options.query)
         : await this.getBuffer(options.query),
+      shouldSnapshot = options.skip !== undefined || options.take !== undefined,
       skip = options.skip || 0,
-      take = options.take || -1,
-      resultSetId = uuid(),
+      take = options.take || 0,
+      resultSetId = shouldSnapshot ? uuid() : undefined,
       ids = buffer.getOnBitPositions(options.skip || 0, take),
       total = ids.length,
       result = new SegmentResults(
-        resultSetId,
-        ids.slice(skip, take === -1 ? ids.length : take),
+        ids,
         skip,
-        total);
-    if (!isRequery) {
+        total,
+        resultSetId);
+    if (!isRequery && resultSetId) {
       await this._dehydrate(resultSetId, buffer);
     }
     return result;
@@ -107,7 +115,10 @@ export class Segmenta {
     await tryDo(() => this._tryPut(segmentId, ops));
   }
 
-  public async dispose(resultSetId: string): Promise<void> {
+  public async dispose(resultSetId?: string): Promise<void> {
+    if (!resultSetId) {
+      return;
+    }
     await this._resultsetHydrator.dispose(resultSetId);
   }
 
@@ -204,5 +215,10 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
   }
 }
 
-// export default Segmenta;
-// module.exports = Segmenta;
+function sanitizeOptions(opts: ISegmentQueryOptions | string): ISanitizedQueryOptions {
+  const options = (isString(opts) ? { query: opts } : opts) as ISanitizedQueryOptions;
+  if (!options.query) {
+    throw new Error("No query defined");
+  }
+  return options;
+}

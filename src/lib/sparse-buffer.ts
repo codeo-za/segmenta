@@ -125,14 +125,14 @@ export default class SparseBuffer implements ISparseBuffer {
    * Gets the indexes of bits which are "on" in the sparse buffer
    *
    */
-  public getOnBitPositions(skip: number = 0, take: number = -1): number[] {
+  public getOnBitPositions(skip: number = 0, take: number = 0): number[] {
     const result = [] as number[];
     this._hunks.forEach(hunk => {
       for (let i = hunk.first; i <= hunk.last; i++) {
         addOnBitPositionsFor(result, this.at(i) as number, i);
       }
     });
-    if (take < 0) {
+    if (take < 1) {
       take = result.length;
     }
     return result.slice(skip, skip + take);

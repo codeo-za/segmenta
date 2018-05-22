@@ -210,7 +210,7 @@ describe("Segmenta", () => {
           sut = create(),
           query = "large-speed-test",
           range5 = {min: 1, max: 2},
-          accept = (i: number) => faker.random.number(range5) === 1,
+          accept = () => faker.random.number(range5) === 1,
           label0 = "generating +- 1 000 000 ids";
         startTimer(label0);
         const
@@ -248,21 +248,39 @@ describe("Segmenta", () => {
           // Assert
           expect(result).toBeTrue();
         });
-        it(`should snapshot the single result`, async () => {
+        it(`should snapshot the single result when skip > 0`, async () => {
           // Arrange
           const
             sut1 = create(),
             sut2 = create(),
-            query = segmentId(),
-            expected = [3];
-          await sut1.add(query, expected);
+            id = segmentId(),
+            expected = [1, 3];
+          await sut1.add(id, expected);
           // Act
-          const result1 = await sut1.query({query});
-          await sut1.add(query, [5]);
+          const result1 = await sut1.query({query: id, skip: 1});
+          await sut1.add(id, [5]);
           const result2 = await sut2.query({query: result1.resultSetId});
           // Assert
-          expect(result1.ids).toEqual(expected);
+          expect(result1.ids).toEqual([3]);
           expect(result2.ids).toEqual(expected);
+        });
+
+        it(`should snapshot the result when the result page-size is < total`, async () => {
+          // Arrange
+          const
+            sut1 = create(),
+            sut2 = create(),
+            id = segmentId(),
+            data = [ 1, 3, 5, 7 ],
+            addData = [ 10, 12 ];
+          await sut1.add(id, data);
+          // Act
+          const result1 = await sut1.query({ query: id, take: 2 });
+          await sut1.add(id, addData);
+          const result2 = await sut2.query({ query: result1.resultSetId });
+          // Assert
+          expect(result1.ids).toEqual([ 1, 3]);
+          expect(result2.ids).toEqual(data);
         });
 
         it(`should expire the snapshot based on provided ttl`, async () => {
@@ -271,7 +289,7 @@ describe("Segmenta", () => {
             sut = create({resultsTTL: 1}),
             id = segmentId();
           await sut.add(id, [3, 5]);
-          const originalResults = await sut.query({query: id});
+          const originalResults = await sut.query({query: id, skip: 1});
           await sleep(1100);
           // Act
           await expect(sut.query({query: originalResults.resultSetId})).rejects.toThrow(
@@ -287,10 +305,31 @@ describe("Segmenta", () => {
             id = segmentId();
           await sut.add(id, [4, 7]);
           // Act
-          const results = await sut.query({query: id});
-          await sut.dispose(results.resultSetId);
-          await expect(sut.query({query: results.resultSetId}))
-            .rejects.toThrow(`result set ${results.resultSetId} not found (expired perhaps?)`);
+          const results1 = await sut.query({query: id, skip: 0});
+          const results2 = await sut.query({ query: results1.resultSetId });
+          expect(results1.ids).toEqual(results2.ids);
+          await sut.dispose(results1.resultSetId);
+          await expect(sut.query({query: results1.resultSetId}))
+            .rejects.toThrow(`result set ${results1.resultSetId} not found (expired perhaps?)`);
+          // Assert
+        });
+
+        it(`should not create snapshots for queries without a skip or take specified`, async () => {
+          // client already gets all the results -- no need to snapshot for paging
+          // Arrange
+          const
+            sut = create(),
+            id = segmentId(),
+            daBirthday = [ 1952, 3, 11 ],
+            redis = new Redis();
+          await clearTestKeys(); // ensure that there are no left-over snapshots
+          await sut.add(id, daBirthday);
+          // Act
+          const result = await sut.query({ query: id });
+          expect(result.ids).toBeEquivalentTo(daBirthday);
+          expect(result.resultSetId).not.toBeDefined();
+          const keys = await redis.keys(`${sut.prefix}/results/*`);
+          expect(keys).toBeEmptyArray();
           // Assert
         });
 
@@ -306,7 +345,7 @@ describe("Segmenta", () => {
         });
 
         async function sleep(ms: number): Promise<void> {
-          return new Promise<void>((resolve, reject) => {
+          return new Promise<void>((resolve) => {
             setTimeout(() => resolve(), ms);
           });
         }

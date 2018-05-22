@@ -1,10 +1,4 @@
-export interface ISegmentResults {
-  ids: number[];
-  skipped: number;
-  count: number;
-  resultSetId: string;
-  total: number;
-}
+import { ISegmentResults } from "./interfaces";
 
 export class SegmentResults implements ISegmentResults {
   public get resultSetId() {
@@ -27,15 +21,15 @@ export class SegmentResults implements ISegmentResults {
     return this._total;
   }
 
-  private readonly _resultSetId: string;
+  private readonly _resultSetId?: string;
   private readonly _ids: number[];
   private readonly _skipped: number;
   private readonly _total: number;
 
-  constructor(resultSetId: string, ids: number[], skipped: number, total: number) {
-    this._resultSetId = resultSetId;
+  constructor(ids: number[], skipped: number, total: number, resultSetId?: string) {
     this._ids = ids;
     this._skipped = skipped;
     this._total = total;
+    this._resultSetId = resultSetId;
   }
 }

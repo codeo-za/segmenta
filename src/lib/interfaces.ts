@@ -15,7 +15,19 @@ export interface IDelOperation {
 }
 
 export interface ISegmentQueryOptions {
-  query: string;
+  query?: string;
   skip?: number;
   take?: number;
+}
+
+export interface ISanitizedQueryOptions extends ISegmentQueryOptions {
+  query: string;
+}
+
+export interface ISegmentResults {
+  ids: number[];
+  skipped: number;
+  count: number;
+  total: number;
+  resultSetId?: string;
 }
