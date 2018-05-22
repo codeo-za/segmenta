@@ -11,9 +11,8 @@
     "test": "jest",
     "lint": "tslint -p .",
     "autotest": "jest --watch",
-    "prebuild": "rimraf dist",
     "build": "gulp build",
-    "clean": "rimraf dist",
+    "preunleash": "gulp build",
     "unleash": "unleash",
     "gulp": "gulp"
   },

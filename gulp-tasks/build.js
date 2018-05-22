@@ -4,7 +4,7 @@ const
 
 const tsProject = ts.createProject("tsconfig.json");
 
-gulp.task("build", () =>{
+gulp.task("build", "Builds the dist artifacts", [ "clean"], () =>{
   return gulp.src("src/**/*.ts")
     .pipe(tsProject())
     .pipe(gulp.dest("dist"));
