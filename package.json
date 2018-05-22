@@ -14,6 +14,8 @@
     "build": "gulp build",
     "preunleash": "gulp build",
     "unleash": "unleash",
+    "prerelease-patch": "gulp build",
+    "release-patch": "unleash -p",
     "gulp": "gulp"
   },
   "jest": {
