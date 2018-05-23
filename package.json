@@ -71,6 +71,7 @@
   },
   "homepage": "https://github.com/codeo-za/segmenta#readme",
   "dependencies": {
+    "ioredis": "^3.2.2",
     "lodash": "^4.17.10"
   },
   "devDependencies": {
@@ -88,7 +89,6 @@
     "gulp": "^3.9.1",
     "gulp-help": "^1.6.1",
     "gulp-typescript": "^4.0.2",
-    "ioredis": "^3.2.2",
     "jest": "^22.4.3",
     "node-ts": "^2.1.2",
     "require-dir": "^1.0.0",
