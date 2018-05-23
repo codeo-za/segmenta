@@ -1,3 +1,12 @@
+<a name="1.0.4"></a>
+### 1.0.4 (2018-05-23)
+
+
+#### Bug Fixes
+
+* should depend (not dev-depend) on ioredis ([147598f4](git+https://github.com/codeo-za/segmenta.git/commit/147598f4))
+
+
 <a name="1.0.3"></a>
 ### 1.0.3 (2018-05-23)
 
