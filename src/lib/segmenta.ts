@@ -212,7 +212,6 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
       if (i === maxAttempts - 1) {
         throw e;
       }
-      console.log("retrying...");
     }
   }
 }

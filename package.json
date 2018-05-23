@@ -2,8 +2,8 @@
   "name": "segmenta",
   "version": "1.0.2",
   "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/**/*"
   ],

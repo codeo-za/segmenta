@@ -31,6 +31,18 @@ import CustomMatcherFactories = jasmine.CustomMatcherFactories;
   beforeAll(
     () => {
       jest.addMatchers({
+        toBeAFunction: () => {
+          return {
+            compare: (actual: any) => {
+              return doAssertions(() => {
+                assert(actual !== undefined && actual !== null,
+                  "actual is null or undefined");
+                const type = typeof actual;
+                assert(type === "function", `expected function but got ${type}`);
+              });
+            },
+          }
+        },
         toMatchArray: () => {
           return {
             compare: (actual: SparseBuffer, expected: number[]) => {
