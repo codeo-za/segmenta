@@ -1,3 +1,12 @@
+<a name="1.0.2"></a>
+### 1.0.2 (2018-05-23)
+
+
+#### Features
+
+* guard against put operations having both add and del doc: update doc about manua ([3ebd15b0](git+https://github.com/codeo-za/segmenta.git/commit/3ebd15b0))
+
+
 <a name="1.0.1"></a>
 ### 1.0.1 (2018-05-22)
 
