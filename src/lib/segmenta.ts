@@ -8,7 +8,6 @@ import {setup} from "./set-bits";
 import {ResultSetHydrator} from "./resultset-hydrator";
 import {KeyGenerator} from "./key-generator";
 import {MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL} from "./constants";
-import {SegmentResults} from "./segment-results";
 import {
   IAddOperation,
   IDelOperation,
@@ -90,11 +89,14 @@ export class Segmenta {
       resultSetId = shouldSnapshot ? uuid() : undefined,
       ids = buffer.getOnBitPositions(options.skip || 0, take),
       total = ids.length,
-      result = new SegmentResults(
+      result = {
         ids,
-        skip,
+        count: ids.length,
+        skipped: skip,
+        take,
         total,
-        resultSetId);
+        resultSetId
+      };
     if (!isRequery && resultSetId) {
       await this._dehydrate(resultSetId, buffer);
     }
