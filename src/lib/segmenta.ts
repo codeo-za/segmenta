@@ -150,7 +150,9 @@ export class Segmenta {
       const [id, val] = isAdd(op)
         ? [op.add, 1]
         : (isDel(op) ? [op.del, 0] : [-1, -1]);
-
+      if (val === 1 && isDel(op)) {
+        throw new Error("cannot combine add/del in the same operation");
+      }
       if (val < 0) {
         continue; // throw?
       }

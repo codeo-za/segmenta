@@ -405,6 +405,22 @@ describe("Segmenta", () => {
       // Assert
       expect(result.ids).toEqual(expected);
     });
+    it(`should throw for add/del combined`, async () => {
+      // consider that the order operations may not be what the user intends,
+      //  such that the put object { add: 1, del: 1 } could have 1 of two meanings:
+      //  1. delete 1 and then add 1: leaves 1 in the segment
+      //  2. add 1 and then delete 1: never has 1 in the segment
+      // Arrange
+      const
+        segment = segmentId(),
+        commands = [
+          { add: 1, del: 1 }
+        ],
+        sut = create();
+      // Act
+      await expect(sut.put(segment, commands)).rejects.toThrow();
+      // Assert
+    });
   });
 
   function create(config?: ISegmentaOptions) {

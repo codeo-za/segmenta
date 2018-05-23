@@ -19,7 +19,7 @@ as performing operations with those sets. Currently (sort-of) supported are:
     - `const segmenta = new Segmenta()`
     - `const segmenta = new Segmenta(options)`
         - options have the structure:
-            ```json
+            ```typescript
             {
               redisOptions?: RedisOptions,
               segmentsPrefix?: string,
@@ -56,7 +56,7 @@ as performing operations with those sets. Currently (sort-of) supported are:
         ```
 4. Query
     - results are returned as an object with the shape:
-        ```json
+        ```typescript
         {
           ids: number[],
           skipped: number,
@@ -127,5 +127,6 @@ as performing operations with those sets. Currently (sort-of) supported are:
                         .or(set2)   // [ 1, 2, 3, 4, 5 ]
                         .and(set3)  // [ 2, 3, 5 ]
                         .not(set4)  // [ 2, 3 ]
+                        .getOnBitPositions(); // returns the numeric array for bit positions
         ```
         These operations are fast, acting on bitfields in memory.
