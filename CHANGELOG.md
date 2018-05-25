@@ -1,3 +1,12 @@
+<a name="1.0.6"></a>
+### 1.0.6 (2018-05-25)
+
+
+#### Features
+
+* basic DSL is in place! ([00854ac9](git+https://github.com/codeo-za/segmenta.git/commit/00854ac9))
+
+
 <a name="1.0.5"></a>
 ### 1.0.5 (2018-05-23)
 
