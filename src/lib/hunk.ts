@@ -8,7 +8,7 @@ export interface IHunk {
   first: number;
   // the virtual position of the last byte covered by this hunk
   last: number;
-  // gets the number of bytes in this buffer
+  // gets the number of bytes orIn this buffer
   length: number;
 
   // set a value at virtual address idx
@@ -69,17 +69,3 @@ export class Hunk implements IHunk {
   }
 }
 
-export function isHunk(obj: any): obj is IHunk {
-  if (obj instanceof Hunk) {
-    return true;
-  }
-  return obj.buffer &&
-    obj.buffer instanceof Buffer &&
-    types.isNumberObject(obj.first === "number") &&
-    types.isNumberObject(obj.last) &&
-    types.isNumberObject(obj.length) &&
-    isFunction(obj.set) &&
-    isFunction(obj.at) &&
-    isFunction(obj.covers) &&
-    isFunction(obj.slice);
-}

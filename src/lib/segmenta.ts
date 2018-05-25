@@ -1,7 +1,6 @@
 import {Redis as IRedis} from "ioredis";
 import {v4 as uuid} from "uuid";
-import {isUUID, isString, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
-import SparseBuffer from "./sparse-buffer";
+import {isUUID, isString, isNumber, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
 import {Hunk, IHunk} from "./hunk";
 import * as _ from "lodash";
 import {setup} from "./set-bits";
@@ -16,6 +15,10 @@ import {
   ISegmentQueryOptions,
   ISegmentResults
 } from "./interfaces";
+import SparseBuffer from "./sparse-buffer";
+
+import {tokenize} from "./dsl/tokenize";
+import {parse} from "./dsl/parse";
 
 const Redis = require("ioredis");
 
@@ -64,7 +67,11 @@ export class Segmenta {
     });
   }
 
-  public async getBuffer(...segments: string[]): Promise<SparseBuffer> {
+  public async getBuffer(...segments: string[]): Promise<SparseBuffer | number> {
+    if (segments.length === 1 && this._looksLikeDSL(segments[0])) {
+      const dslResult = await this._getBufferForDSL(segments[0]);
+      return dslResult;
+    }
     const
       baseKeys = segments.map(s => this._dataKeyForSegment(s)),
       segmentKeys = await this._getSegmentKeys(...baseKeys),
@@ -76,13 +83,34 @@ export class Segmenta {
     return result;
   }
 
+  private _looksLikeDSL(str: string): boolean {
+    // TODO: make this WAY better
+    return !!(str.match(/where/i));
+  }
+
+  private async _getBufferForDSL(query: string): Promise<SparseBuffer | number> {
+    const
+      tokens = tokenize(query),
+      pipeline = parse(tokens, this);
+    return await pipeline.exec();
+  }
+
   public async query(qry: ISegmentQueryOptions | string): Promise<ISegmentResults> {
     const
       options = sanitizeOptions(qry),
       isRequery = isUUID(options.query),
       buffer = isRequery
         ? await this._rehydrate(options.query)
-        : await this.getBuffer(options.query),
+        : await this.getBuffer(options.query);
+    if (isNumber(buffer)) {
+      return {
+        ids: [],
+        total: buffer,
+        skipped: 0,
+        count: buffer
+      };
+    }
+    const
       shouldSnapshot = options.skip !== undefined || options.take !== undefined,
       skip = options.skip || 0,
       take = options.take || 0,
@@ -153,7 +181,7 @@ export class Segmenta {
         ? [op.add, 1]
         : (isDel(op) ? [op.del, 0] : [-1, -1]);
       if (val === 1 && isDel(op)) {
-        throw new Error("cannot combine add/del in the same operation ");
+        throw new Error("cannot combine add/del orIn the same operation ");
       }
       if (val < 0) {
         continue; // throw?
@@ -219,7 +247,7 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
 }
 
 function sanitizeOptions(opts: ISegmentQueryOptions | string): ISanitizedQueryOptions {
-  const options = (isString(opts) ? { query: opts } : opts) as ISanitizedQueryOptions;
+  const options = (isString(opts) ? {query: opts} : opts) as ISanitizedQueryOptions;
   if (!options.query) {
     throw new Error("No query defined");
   }

@@ -1,4 +1,4 @@
-// times are becoming noise in continual test output
+// times are becoming noise orIn continual test output
 //  - if you want times, define the environment variable
 //    SHOW_TIMES
 

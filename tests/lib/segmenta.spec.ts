@@ -161,7 +161,7 @@ describe("Segmenta", () => {
         // Act
         await sut.add(query, values);
         const result = await sut.query({query});
-        const buffer = await sut.getBuffer(query);
+        const buffer = await sut.getBuffer(query) as SparseBuffer;
         // Assert
         expect(result.ids).toEqual(values);
         expect(buffer.hunks).toHaveLength(2);
@@ -271,15 +271,15 @@ describe("Segmenta", () => {
             sut1 = create(),
             sut2 = create(),
             id = segmentId(),
-            data = [ 1, 3, 5, 7 ],
-            addData = [ 10, 12 ];
+            data = [1, 3, 5, 7],
+            addData = [10, 12];
           await sut1.add(id, data);
           // Act
-          const result1 = await sut1.query({ query: id, take: 2 });
+          const result1 = await sut1.query({query: id, take: 2});
           await sut1.add(id, addData);
-          const result2 = await sut2.query({ query: result1.resultSetId });
+          const result2 = await sut2.query({query: result1.resultSetId});
           // Assert
-          expect(result1.ids).toEqual([ 1, 3]);
+          expect(result1.ids).toEqual([1, 3]);
           expect(result2.ids).toEqual(data);
         });
 
@@ -306,7 +306,7 @@ describe("Segmenta", () => {
           await sut.add(id, [4, 7]);
           // Act
           const results1 = await sut.query({query: id, skip: 0});
-          const results2 = await sut.query({ query: results1.resultSetId });
+          const results2 = await sut.query({query: results1.resultSetId});
           expect(results1.ids).toEqual(results2.ids);
           await sut.dispose(results1.resultSetId);
           await expect(sut.query({query: results1.resultSetId}))
@@ -320,12 +320,12 @@ describe("Segmenta", () => {
           const
             sut = create(),
             id = segmentId(),
-            daBirthday = [ 1952, 3, 11 ],
+            daBirthday = [1952, 3, 11],
             redis = new Redis();
           await clearTestKeys(); // ensure that there are no left-over snapshots
           await sut.add(id, daBirthday);
           // Act
-          const result = await sut.query({ query: id });
+          const result = await sut.query({query: id});
           expect(result.ids).toBeEquivalentTo(daBirthday);
           expect(result.resultSetId).not.toBeDefined();
           const keys = await redis.keys(`${sut.prefix}/results/*`);
@@ -349,6 +349,203 @@ describe("Segmenta", () => {
             setTimeout(() => resolve(), ms);
           });
         }
+      });
+
+      describe(`DSL query`, () => {
+        beforeEach(async () => {
+          await clearTestKeys();
+        });
+        afterEach(async () => {
+          await clearTestKeys();
+        });
+        it(`should return for "GET WHERE IN('x')"`, async () => {
+          // Arrange
+          const
+            id = "x",
+            data = [1, 3, 7],
+            sut = create();
+          await sut.add(id, data);
+          // Act
+          const result = await sut.query({query: "GET WHERE IN('x')"});
+          // Assert
+          expect(result.ids).toEqual(data);
+        });
+        it(`should return for "GET WHERE IN('x') AND IN('y')`, async () => {
+          // Arrange
+          const
+            id1 = "x",
+            id2 = "y",
+            data1 = [1, 3, 5],
+            data2 = [3, 5, 7],
+            expected = [3, 5],
+            sut = create();
+          await sut.add(id1, data1);
+          await sut.add(id2, data2);
+          // Act
+          const result = await sut.query({query: "GET WHERE IN('x') AND IN('y')"});
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN('x') OR IN ('y')`, async () => {
+          // Arrange
+          const
+            id1 = "x",
+            id2 = "y",
+            data1 = [1, 3, 5, 7],
+            data2 = [2, 4, 5, 6, 8],
+            expected = [1, 2, 3, 4, 5, 6, 7, 8],
+            sut = create();
+          await sut.add(id1, data1);
+          await sut.add(id2, data2);
+          // Act
+          const result = await sut.query("get where in ('x') or in ('y')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'x' OR IN 'y'`, async () => {
+          // Arrange
+          const
+            id1 = "x",
+            id2 = "y",
+            data1 = [1, 3, 5, 7],
+            data2 = [2, 4, 5, 6, 8],
+            expected = [1, 2, 3, 4, 5, 6, 7, 8],
+            sut = create();
+          await sut.add(id1, data1);
+          await sut.add(id2, data2);
+          // Act
+          const result = await sut.query("get where in 'x' or in 'y'");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'x' and (in 'y' or in 'z')`, async () => {
+          // Arrange
+          const
+            xData = [ 1, 2, 3, 4, 5 ],
+            yData = [ 2 ],
+            zData = [ 4 ],
+            expected = [ 2, 4 ],
+            sut = create();
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          await sut.add("z", zData);
+          // Act
+          const result = await sut.query("get where in 'x' and (in 'y' or in 'z')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'x' and not (in 'y' or in 'z')`, async () => {
+          // Arrange
+          const
+            xData = [ 1, 2, 3, 4, 5 ],
+            yData = [ 2 ],
+            zData = [ 4 ],
+            expected = [ 1, 3, 5 ],
+            sut = create();
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          await sut.add("z", zData);
+
+          // Act
+          const result = await sut.query("get where in 'x' and not (in 'y' or in 'z')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'x' and not (in 'y' and in 'z')`, async () => {
+          // Arrange
+          const
+            xData = [ 1, 2, 3, 4, 5 ],
+            yData = [ 1, 3 ],
+            zData = [ 3, 5 ],
+            expected = [ 1, 2, 4, 5 ],
+            sut = create();
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          await sut.add("z", zData);
+          // Act
+          const result = await sut.query("get where in 'x' and not in (in 'y' and in 'z')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'x' and 'y' and not (in 'z')"`, async () => {
+          // Arrange
+          const
+            xData = [ 1, 2, 3, 4, 5 ],
+            yData = [ 3, 4, 5 ],
+            zData = [ 5 ],
+            expected = [ 3, 4 ],
+            sut = create();
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          await sut.add("z", zData);
+          // Act
+          const result = await sut.query("get where in 'x' and 'y' and not (in 'z')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'a' or 'b' and not (in 'x' or 'y')"`, async () => {
+          // Arrange
+          const
+            aData = [ 1, 2, 3 ],
+            bData = [ 4, 5, 6 ],
+            xData = [ 4, 5 ],
+            yData = [ 3, 6 ],
+            expected = [ 1, 2 ],
+            sut = create();
+          await sut.add("a", aData);
+          await sut.add("b", bData);
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          // Act
+          const result = await sut.query("get where in 'a' or 'b' and not (in 'x' or 'y')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'a' and 'b' and not (in 'x' or 'y')"`, async () => {
+          // Arrange
+          const
+            aData = [ 1, 2, 3, 4, 5, 6 ],
+            bData = [ 0, 1, 2, 3, 4, 5, 6, 7 ],
+            xData = [ 4, 5 ],
+            yData = [ 3, 6 ],
+            expected = [ 1, 2 ],
+            sut = create();
+          await sut.add("a", aData);
+          await sut.add("b", bData);
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          // Act
+          const result = await sut.query("get where in 'a' and 'b' and not (in 'x' or 'y')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+
+        it(`should return for "GET WHERE IN 'a' and in 'b' and not (in 'x' or 'y')"`, async () => {
+          // Arrange
+          const
+            aData = [ 1, 2, 3, 4, 5, 6 ],
+            bData = [ 0, 1, 2, 3, 4, 5, 6, 7 ],
+            xData = [ 4, 5 ],
+            yData = [ 3, 6 ],
+            expected = [ 1, 2 ],
+            sut = create();
+          await sut.add("a", aData);
+          await sut.add("b", bData);
+          await sut.add("x", xData);
+          await sut.add("y", yData);
+          // Act
+          const result = await sut.query("get where in 'a' and in 'b' and not (in 'x' or 'y')");
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
       });
 
       function createIdSource(
@@ -406,15 +603,15 @@ describe("Segmenta", () => {
       expect(result.ids).toEqual(expected);
     });
     it(`should throw for add/del combined`, async () => {
-      // consider that the order operations may not be what the user intends,
+      // consider that the order operations may notIn be what the user intends,
       //  such that the put object { add: 1, del: 1 } could have 1 of two meanings:
-      //  1. delete 1 and then add 1: leaves 1 in the segment
-      //  2. add 1 and then delete 1: never has 1 in the segment
+      //  1. delete 1 andIn then add 1: leaves 1 orIn the segment
+      //  2. add 1 andIn then delete 1: never has 1 orIn the segment
       // Arrange
       const
         segment = segmentId(),
         commands = [
-          { add: 1, del: 1 }
+          {add: 1, del: 1}
         ],
         sut = create();
       // Act

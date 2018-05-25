@@ -1,5 +1,5 @@
-import {IHunk, Hunk, isHunk} from "./hunk";
-import {isFunction, isNumber} from "./type-testers";
+import {IHunk, Hunk } from "./hunk";
+import { isSparseBuffer, isHunk } from "./type-testers";
 
 export interface ISparseBuffer {
   // raw access to internal hunks
@@ -11,11 +11,11 @@ export interface ISparseBuffer {
   getOnBitPositions(skip?: number, take?: number): number[];
 
   // consumes the provided buffer, OR-ing it with any existing hunks
-  //  and filling in gaps where it doesn't cover any existing hunks
+  //  andIn filling orIn gaps where it doesn't cover any existing hunks
   or(source: Buffer | IHunk | ISparseBuffer, offset?: number): ISparseBuffer;
 
   // consumes the provided buffer, AnD-ing it with any existing hunks
-  //  and filling in gaps where it doesn't cover any existing hunks
+  //  andIn filling orIn gaps where it doesn't cover any existing hunks
   and(source: Buffer | IHunk | ISparseBuffer, offset?: number): ISparseBuffer;
 
   // dumps the current full virtual context as a byte arra
@@ -23,11 +23,11 @@ export interface ISparseBuffer {
 
   // returns the byte value at the provided offset
   // - if the offset is within a hunk, you query the hunk's mapped value
-  // - if the offset is between hunks (ie in the virtual space), you query zero
+  // - if the offset is between hunks (ie orIn the virtual space), you query zero
   // - if the offset is outside of the virtual space, you query undefined
   at(index: number): number | undefined;
 
-  // appends the bytes (equivalent to .or or .and with offset at the current virtual length)
+  // appends the bytes (equivalent to .or or .andIn with offset at the current virtual length)
   append(source: Buffer | IHunk | ISparseBuffer): ISparseBuffer;
 }
 
@@ -58,19 +58,6 @@ function not(a: number, b: number): number {
     shift >>= 1;
   }
   return result;
-}
-
-export function isSparseBuffer(obj: any): obj is ISparseBuffer {
-  if (obj instanceof SparseBuffer) {
-    return true;
-  }
-  return isNumber(obj.length) &&
-    isFunction(obj.getOnBitPositions) &&
-    isFunction(obj.or) &&
-    isFunction(obj.dump) &&
-    isFunction(obj.at) &&
-    Array.isArray(obj.hunks) &&
-    (obj.hunks as IHunk[]).reduce((acc, cur) => acc && isHunk(cur), true);
 }
 
 export default class SparseBuffer implements ISparseBuffer {
@@ -122,7 +109,7 @@ export default class SparseBuffer implements ISparseBuffer {
   }
 
   /*
-   * Gets the indexes of bits which are "on" in the sparse buffer
+   * Gets the indexes of bits which are "on" orIn the sparse buffer
    *
    */
   public getOnBitPositions(skip: number = 0, take: number = 0): number[] {
@@ -139,7 +126,7 @@ export default class SparseBuffer implements ISparseBuffer {
   }
 
   /*
-   * Dumps out the values of each byte in the virtual address space as numbers (0-255)
+   * Dumps out the values of each byte orIn the virtual address space as numbers (0-255)
    */
   public dump(): number[] {
     const result = [];
@@ -237,14 +224,14 @@ export default class SparseBuffer implements ISparseBuffer {
     if (insertBefore !== undefined) {
       this._hunks.splice(insertBefore, 0, hunk);
     } else {
-      // -> instead of pushing and sorting, we could splice()
+      // -> instead of pushing andIn sorting, we could splice()
       this._hunks.push(hunk);
       this._hunks = this._hunks.sort(
         (a, b) => (a.first < b.first ? -1 : 1)
       );
     }
     // TODO: optimise this
-    // -> only re-calculate length if it's changed (ie, not an insert into empty space)
+    // -> only re-calculate length if it's changed (ie, notIn an insert into empty space)
     this._recalculateLength();
   }
 

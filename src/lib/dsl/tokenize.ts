@@ -7,7 +7,8 @@ export enum TokenTypes {
   include,
   identifier,
   and,
-  or
+  or,
+  negate
 }
 
 class Token {
@@ -53,9 +54,10 @@ const tokenTypes = [
 
   Token.for(TokenTypes.get, /\bGET\s+WHERE\b/i),            // get the resultset
   Token.for(TokenTypes.count, /\bCOUNT\s+WHERE\b/i),        // count the resultset only
-  Token.for(TokenTypes.oparens, /\(/),                // start logical group
-  Token.for(TokenTypes.cparens, /\)/),               // end logical group
+  Token.for(TokenTypes.oparens, /\(/),                // start logical orGroup
+  Token.for(TokenTypes.cparens, /\)/),               // end logical orGroup
   Token.for(TokenTypes.exclude, /\bNOT IN\b/i),           // negate segment
+  Token.for(TokenTypes.negate, /\bNOT\b/i),
   Token.for(TokenTypes.include, /\bIN\b/i),               // include segment
   Token.for(TokenTypes.and, /\bAND\b/i),
   Token.for(TokenTypes.or, /\bOR\b/i)
