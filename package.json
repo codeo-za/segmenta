@@ -72,7 +72,7 @@
   "homepage": "https://github.com/codeo-za/segmenta#readme",
   "dependencies": {
     "ioredis": "^3.2.2",
-    "lodash": "^4.17.10,",
+    "lodash": "^4.17.10",
     "uuid": "^3.2.1",
     "@types/ioredis": "^3.2.7"
   },
