@@ -1,5 +1,6 @@
-import {tokenize, TokenTypes} from "../../../src/lib/dsl/tokenize";
+import {IToken, ISimpleToken, tokenize, TokenTypes} from "../../../src/lib/dsl/tokenize";
 import "../../matchers";
+import _ = require("lodash");
 
 describe(`tokenizer`, () => {
   it(`should export the tokenize function`, () => {
@@ -8,6 +9,10 @@ describe(`tokenizer`, () => {
     expect(tokenize).toBeAFunction();
     // Assert
   });
+  function simplify(tokens: IToken[]): ISimpleToken[] {
+    return tokens.map(o => _.pick(o, ["type", "value"]) as ISimpleToken);
+  }
+
   describe(`behavior`, () => {
     it(`should retrieve simplest GET WHERE IN('x')`, () => {
       // Arrange
@@ -26,7 +31,7 @@ describe(`tokenizer`, () => {
           type: TokenTypes.cparens
         }];
       // Act
-      const result = tokenize(code);
+      const result = simplify(tokenize(code));
       // Assert
       expect(result).toEqual(expected);
     });
@@ -48,7 +53,7 @@ describe(`tokenizer`, () => {
           type: TokenTypes.cparens
         }];
       // Act
-      const result = tokenize(code);
+      const result = simplify(tokenize(code));
       // Assert
       expect(result).toEqual(expected);
     });
@@ -84,7 +89,7 @@ describe(`tokenizer`, () => {
             type: TokenTypes.cparens
           }];
         // Act
-        const result = tokenize(code);
+        const result = simplify(tokenize(code));
         // Assert
         expect(result).toEqual(expected);
       });
@@ -107,7 +112,7 @@ describe(`tokenizer`, () => {
             type: TokenTypes.cparens
           }];
         // Act
-        const result = tokenize(code);
+        const result = simplify(tokenize(code));
         // Assert
         expect(result).toEqual(expected);
       });
@@ -155,7 +160,7 @@ describe(`tokenizer`, () => {
           ];
 
         // Act
-        const result = tokenize(code);
+        const result = simplify(tokenize(code));
         // Assert
         expect(result).toEqual(expected);
       });
@@ -179,7 +184,7 @@ describe(`tokenizer`, () => {
             { type: TokenTypes.cparens }
           ];
         // Act
-        const result = tokenize(code);
+        const result = simplify(tokenize(code));
         // Assert
         expect(result).toEqual(expected);
       });
@@ -203,7 +208,7 @@ describe(`tokenizer`, () => {
             { type: TokenTypes.cparens }
           ];
         // Act
-        const result = tokenize(code);
+        const result = simplify(tokenize(code));
         // Assert
         expect(result).toEqual(expected);
       });
@@ -221,6 +226,66 @@ describe(`tokenizer`, () => {
       expect(() => tokenize(`GET
 WHAT IN 'x'`)).toThrow("Syntax error (line 1, char 1): 'GET\nWHAT I...'");
       // Assert
+    });
+    it(`should throw an error when query is empty`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize(""))
+        .toThrow("Syntax error: empty query");
+      // Assert
+    });
+    it(`should throw an error when query does not start with "COUNT WHERE" or "GET WHERE"`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize("IN GET WHERE IN 'x'"))
+        .toThrow("Syntax error: query must start with 'GET WHERE' or 'COUNT WHERE'");
+      // Assert
+    });
+    it(`should throw an error when the initial query is an exclusion (infinite set)`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize("GET WHERE NOT IN 'x'"))
+        .toThrow(/may not start query with 'not in': result set is infinite/);
+      // Assert
+    });
+    it(`should throw an error when there is no initial 'IN'`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize("GET WHERE 'X'")).toThrow(
+        "Syntax error: 'GET WHERE' / 'COUNT WHERE' requires at least initial 'IN'"
+      );
+      // Assert
+    });
+    it(`should throw an error when there is no initial 'IN' (2)`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize("GET WHERE 'X' OR IN 'Y'")).toThrow(
+        "Syntax error: 'GET WHERE' / 'COUNT WHERE' requires at least initial 'IN'"
+      );
+      // Assert
+    });
+    it(`should throw an error when there are no identifiers`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize("GET WHERE IN OR AND AND")).toThrow(
+        "Syntax error: no segment id specified (must be single- or double-quoted)"
+      );
+      // Assert
+    });
+    [
+      { q: "GET WHERE IN 'X' AND AND IN 'Y'", e: /may not run and into and/i },
+      { q: "GET WHERE IN 'X' OR OR IN 'Y'", e: /may not run or into or/i },
+      { q: "GET WHERE IN 'X' and OR IN 'Y'", e: /may not run and into or/i },
+      { q: "GET WHERE IN 'X' or and IN 'Y'", e: /may not run or into and/i },
+      { q: "GET WHERE IN 'X' or not not in 'y'", e: /may not run not into not in/i },
+      { q: "GET WHERE IN 'X' or not in not 'y'", e: /may not run not in into not/i },
+    ].forEach(tc => {
+      it(`should throw for adjacent, non-sensical syntax`, () => {
+        // Arrange
+        // Act
+        expect(() => tokenize(tc.q)).toThrow(tc.e);
+        // Assert
+      });
     });
   });
 });

@@ -1,3 +1,5 @@
+import { validate } from "./validation";
+
 export enum TokenTypes {
   get,
   count,
@@ -33,13 +35,17 @@ class Token {
   }
 }
 
-export interface IToken {
+export interface ISimpleToken {
   type: TokenTypes;
   value?: string;
 }
 
-interface ITokenMatch {
-  type: TokenTypes;
+export interface IToken extends ISimpleToken {
+  line: number;
+  char: number;
+}
+
+interface ITokenMatch extends IToken {
   match: RegExpMatchArray;
 }
 
@@ -71,12 +77,17 @@ function sanitizeIdentifier(str: string): string {
   return result;
 }
 
-function generateSyntaxErrorFor(allCode: string, current: string): string {
+function codePos(allCode: string, current: string): number[] {
   const
     absolutePos = allCode.length - current.length,
-    lines = allCode.substr(0, absolutePos).split(new RegExp("\\r\\n|\\n|\\r")),
-    linePos = lines.length,
-    charPos = lines[linePos - 1].length + 1,
+      lines = allCode.substr(0, absolutePos).split(new RegExp("\\r\\n|\\n|\\r")),
+      linePos = lines.length,
+      charPos = lines[linePos - 1].length + 1;
+  return [linePos, charPos];
+}
+
+function generateSyntaxErrorFor(current: string, linePos: number, charPos: number): string {
+  const
     partial = current.length > 10 ? current.substr(0, 10) + "..." : current;
   return `Syntax error (line ${linePos}, char ${charPos}): '${partial}'`;
 }
@@ -85,6 +96,7 @@ export function tokenize(code: string): IToken[] {
   const result = [] as IToken[];
   let currentCode = code.trim();
   while (currentCode) {
+    const [ line, char ] = codePos(code, currentCode);
     const thisToken = tokenTypes.reduce(
       (acc, cur) => {
         if (acc) {
@@ -92,22 +104,25 @@ export function tokenize(code: string): IToken[] {
         }
         const match = currentCode.match(cur.regex);
         return match && match.index === 0
-          ? {type: cur.type, match}
+          ? {type: cur.type, match, line, char}
           : acc;
       }, undefined as ITokenMatch | undefined);
     if (thisToken === undefined ||
       thisToken.match === undefined ||
       thisToken.match.index === undefined) {
-      throw new Error(generateSyntaxErrorFor(code, currentCode));
+      throw new Error(generateSyntaxErrorFor(currentCode, line, char));
     } else {
       result.push({
         type: thisToken.type,
         value: thisToken.type === TokenTypes.identifier
           ? sanitizeIdentifier(thisToken.match[0])
-          : undefined
+          : undefined,
+        line,
+        char
       });
       currentCode = currentCode.substr(thisToken.match[0].length).trim();
     }
   }
+  validate(result);
   return result;
 }
