@@ -3,7 +3,7 @@
 ## What does it do?
 
 Provides a mechanism for storing and retrieving sets of numbers quickly as well
-as performing operations with those sets. Currently (sort-of) supported are:
+as performing operations with those sets. Currently supported are:
 - `and`: produce the set C of numbers which are in both A and B
     - [ 1, 2, 3 ] and [ 2, 3, 4 ] = [ 2, 3 ]
 - `or`: produce the set C of numbers which are in either A or B
@@ -114,21 +114,58 @@ as performing operations with those sets. Currently (sort-of) supported are:
         await segmenta.dispose(result.resultSetId);
         ```
         _Snapshots are **only** created when queries are performed with a positive integer `skip` or `take` value_
-    - until a query DSL is in place, the consumer can _technically_ do the following to work with logical operators:
+    - There is a DSL for querying in a more readable manner:
         ```
         await segmenta.add("set1", [ 1, 2 ]);
         await segmenta.add("set2", [ 3, 4, 5 ]);
         await segmenta.add("set3", [ 2, 3, 5, 6, 7 ]);
         await segmenta.add("set4", [ 5, 6 ]);
         // ... some time later ...
+        const query = "get where in 'set1' or 'set2' and 'set3' not 'set4'";
+        const result1 = await segmenta.query(query);
+        // or, with paging options:
+        const result2 = await segmenta.query({ query, skip: 10, take: 100 });
+        
+        // the query syntax above is analogous to the following
+        //  more manual query mechanism:
         const set1 = await segmenta.getBuffer("set1");
         const set2 = await segmenta.getBuffer("set2");
         const set3 = await segmenta.getBuffer("set3");
         const set4 = await segmenta.getBuffer("set4");
+        // these operations are fast, acting on bitfields in memory.
         const final = set1          // [ 1, 2 ]
                         .or(set2)   // [ 1, 2, 3, 4, 5 ]
                         .and(set3)  // [ 2, 3, 5 ]
                         .not(set4)  // [ 2, 3 ]
                         .getOnBitPositions(); // returns the numeric array for bit positions
         ```
-        These operations are fast, acting on bitfields in memory.
+        One may also query for counts only:
+        ```
+        await segmenta.query("count where in 'x');
+        ```
+        Query syntax is quite simple:
+        ```
+        (GET | COUNT) WHERE IN('segment-id') {(AND|OR|NOT) IN('other-segment')}...
+        ```
+        - segments are identified by strings (single- or double-quoted)
+        - only two operations are supported: `GET` and `COUNT`
+        - the results of `COUNT` look like `GET` except no segment data is returned. Use
+            the `total` field in the result to read your count value.
+        - boolean operations are run left-to-right
+        - operations may be grouped with brackets, in which case they are evaluated first, eg:
+          `GET WHERE IN('x') AND NOT (IN('y') OR IN('z'))`
+          - retreives values which are in 'x' and also not in 'y' or 'z';
+        - brackets around segment ids are optional:
+          `GET WHERE IN 'x'` is equivalent to `GET WHERE IN('x')`
+        - the `IN` keyworkd is optional after the first usage:
+          `GET WHERE IN 'x' and IN 'y'` is equivalent to `GET WHERE IN 'x' AND 'y'`
+        - syntax is case-insensitive
+          `GET WHERE IN 'x'` is equivalent to `get where in 'x'` and `Get Where In('x')`
+        - **segment ids are case-sensitive**
+          - `get where in 'MY-SEGMENT'` is **NOT** equivalent to `get where in 'my-segment'`
+        - segment ids may not contain quotations
+          - they must be valid redis keys
+        - some queries will never make sense, so expect either strange results or parse errors:
+          `GET WHERE NOT IN 'x'`
+          - since the segments are open-ended, this is essentially an infinite set of
+            all numbers, excluding those in segment 'x'

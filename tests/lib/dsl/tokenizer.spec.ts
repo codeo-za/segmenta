@@ -208,5 +208,19 @@ describe(`tokenizer`, () => {
         expect(result).toEqual(expected);
       });
     });
+    it(`should throw error for invalid token at start`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize("GOT WHERE"))
+        .toThrow("Syntax error (line 1, char 1): 'GOT WHERE'");
+      // Assert
+    });
+    it(`should throw error with valid line / char value`, () => {
+      // Arrange
+      // Act
+      expect(() => tokenize(`GET
+WHAT IN 'x'`)).toThrow("Syntax error (line 1, char 1): 'GET\nWHAT I...'");
+      // Assert
+    });
   });
 });

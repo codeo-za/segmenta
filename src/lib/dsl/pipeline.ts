@@ -36,8 +36,6 @@ export class SegmentaPipeline {
     this.id = ++pipelineId;
   }
 
-  private _buffer: SparseBuffer = new SparseBuffer();
-
   public notIn() {
     this._lastOp = SegmentaPipelineOperations.notIn;
     return this;

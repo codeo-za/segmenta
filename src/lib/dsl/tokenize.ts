@@ -71,16 +71,26 @@ function sanitizeIdentifier(str: string): string {
   return result;
 }
 
+function generateSyntaxErrorFor(allCode: string, current: string): string {
+  const
+    absolutePos = allCode.length - current.length,
+    lines = allCode.substr(0, absolutePos).split(new RegExp("\\r\\n|\\n|\\r")),
+    linePos = lines.length,
+    charPos = lines[linePos - 1].length + 1,
+    partial = current.length > 10 ? current.substr(0, 10) + "..." : current;
+  return `Syntax error (line ${linePos}, char ${charPos}): '${partial}'`;
+}
+
 export function tokenize(code: string): IToken[] {
   const result = [] as IToken[];
-  code = code.trim();
-  while (code) {
+  let currentCode = code.trim();
+  while (currentCode) {
     const thisToken = tokenTypes.reduce(
       (acc, cur) => {
         if (acc) {
           return acc;
         }
-        const match = code.match(cur.regex);
+        const match = currentCode.match(cur.regex);
         return match && match.index === 0
           ? {type: cur.type, match}
           : acc;
@@ -88,7 +98,7 @@ export function tokenize(code: string): IToken[] {
     if (thisToken === undefined ||
       thisToken.match === undefined ||
       thisToken.match.index === undefined) {
-      throw new Error(`Invalid token at or near: ${code.substr(0, 10)}`);
+      throw new Error(generateSyntaxErrorFor(code, currentCode));
     } else {
       result.push({
         type: thisToken.type,
@@ -96,7 +106,7 @@ export function tokenize(code: string): IToken[] {
           ? sanitizeIdentifier(thisToken.match[0])
           : undefined
       });
-      code = code.substr(thisToken.match[0].length).trim();
+      currentCode = currentCode.substr(thisToken.match[0].length).trim();
     }
   }
   return result;
