@@ -1,3 +1,12 @@
+<a name="1.0.8"></a>
+### 1.0.8 (2018-05-28)
+
+
+#### Bug Fixes
+
+* bad version value for lodash dependency ([c261ce76](git+https://github.com/codeo-za/segmenta.git/commit/c261ce76))
+
+
 <a name="1.0.7"></a>
 ### 1.0.7 (2018-05-28)
 
