@@ -1,3 +1,12 @@
+<a name="1.0.10"></a>
+### 1.0.10 (2018-05-28)
+
+
+#### Features
+
+* more validation on queries for clearer error reporting & non-silly results ([af934a18](git+https://github.com/codeo-za/segmenta.git/commit/af934a18))
+
+
 <a name="1.0.9"></a>
 ### 1.0.9 (2018-05-28)
 
