@@ -15,7 +15,7 @@ as performing operations with those sets. Currently (sort-of) supported are:
 
 1. `import` or `require` _segmenta_
     - javascript: `const Segmenta = require("segmenta");`
-    - typescript: `import Segmenta from "segmenta";`
+    - typescript: `import Segmenta = require("segmenta");`
     - the only export of the library is the Segmenta class
 2. create an instance with options, if required:
     - `const segmenta = new Segmenta()`
