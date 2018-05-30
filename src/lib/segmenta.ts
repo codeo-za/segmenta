@@ -2,7 +2,7 @@ import {Redis as IRedis} from "ioredis";
 import {v4 as uuid} from "uuid";
 import {isUUID, isString, isNumber, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
 import {Hunk, IHunk} from "./hunk";
-import * as _ from "lodash";
+import _ from "lodash";
 import {setup} from "./set-bits";
 import {ResultSetHydrator} from "./resultset-hydrator";
 import {KeyGenerator} from "./key-generator";

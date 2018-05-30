@@ -1,6 +1,4 @@
-import CustomMatcherResult = jasmine.CustomMatcherResult;
 import SparseBuffer from "../src/lib/sparse-buffer";
-import CustomMatcherFactories = jasmine.CustomMatcherFactories;
 
 (() => {
   function failWith(message: string) {

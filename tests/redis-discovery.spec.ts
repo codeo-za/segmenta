@@ -1,4 +1,4 @@
-import * as faker from "faker";
+import faker from "faker";
 const Redis = require("ioredis");
 import "./matchers";
 
