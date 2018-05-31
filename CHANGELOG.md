@@ -1,3 +1,12 @@
+<a name="1.0.11"></a>
+### 1.0.11 (2018-05-31)
+
+
+#### Bug Fixes
+
+* invalid dsl query should throw ([e24a022b](git+https://github.com/codeo-za/segmenta.git/commit/e24a022b))
+
+
 <a name="1.0.10"></a>
 ### 1.0.10 (2018-05-28)
 
