@@ -39,7 +39,7 @@ import SparseBuffer from "../src/lib/sparse-buffer";
                 assert(type === "function", `expected function but got ${type}`);
               });
             },
-          }
+          };
         },
         toMatchArray: () => {
           return {

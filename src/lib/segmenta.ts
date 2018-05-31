@@ -17,7 +17,7 @@ import {
 } from "./interfaces";
 import SparseBuffer from "./sparse-buffer";
 
-import {tokenize} from "./dsl/tokenize";
+import {IToken, tokenize} from "./dsl/tokenize";
 import {parse} from "./dsl/parse";
 
 const Redis = require("ioredis");
@@ -84,8 +84,9 @@ export class Segmenta {
   }
 
   private _looksLikeDSL(str: string): boolean {
-    // TODO: make this WAY better
-    return !!(str.match(/where/i));
+    const parts = (str || "").split(" ");
+    // assume dsl query if there are multiple words in the query string
+    return parts.length > 1;
   }
 
   private async _getBufferForDSL(query: string): Promise<SparseBuffer | number> {

@@ -68,4 +68,3 @@ export class Hunk implements IHunk {
       : this._buffer.slice(sliceStart, end - this._offset);
   }
 }
-

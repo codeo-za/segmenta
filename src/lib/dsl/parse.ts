@@ -21,7 +21,7 @@ const tokenActions: ITokenActions = {
   [TokenTypes[TokenTypes.and]]: (p: SegmentaPipeline) => p.and(),
   [TokenTypes[TokenTypes.or]]: (p: SegmentaPipeline) => p.or(),
   [TokenTypes[TokenTypes.negate]]: (p: SegmentaPipeline) => p.not(),
-}
+};
 
 export function parse(tokens: IToken[], segmenta: Segmenta) {
    return tokens.reduce(

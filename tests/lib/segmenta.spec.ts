@@ -387,6 +387,16 @@ describe("Segmenta", () => {
           expect(result.ids).toEqual(expected);
         });
 
+        it(`should throw for invalid syntax`, async () => {
+          // Arrange
+          const sut = create();
+          // Act
+          await expect(sut.query({ query: "select * from 'moo-cows'"})).rejects.toThrow(
+            /syntax error/i
+          );
+          // Assert
+        });
+
         it(`should return for "GET WHERE IN('x') OR IN ('y')`, async () => {
           // Arrange
           const
