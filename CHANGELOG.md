@@ -1,3 +1,12 @@
+<a name="1.0.12"></a>
+### 1.0.12 (2018-05-31)
+
+
+#### Bug Fixes
+
+* should not throw when asked to dispose a non-existent result-set ([98d31864](git+https://github.com/codeo-za/segmenta.git/commit/98d31864))
+
+
 <a name="1.0.11"></a>
 ### 1.0.11 (2018-05-31)
 
