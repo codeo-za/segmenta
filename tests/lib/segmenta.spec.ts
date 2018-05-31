@@ -344,6 +344,18 @@ describe("Segmenta", () => {
           expect(result).toEqual(oneDay);
         });
 
+        describe(`dispose`, () => {
+          it(`should not throw if the given resultset does not exist`, async () => {
+            // Arrange
+            const
+              sut = create(),
+              id = uuid();
+            // Act
+            await expect(sut.dispose(id)).resolves.not.toThrow();
+            // Assert
+          });
+        });
+
         async function sleep(ms: number): Promise<void> {
           return new Promise<void>((resolve) => {
             setTimeout(() => resolve(), ms);

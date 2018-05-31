@@ -38,6 +38,10 @@ export class ResultSetHydrator {
     const
       baseKey = this._keyGenerator.resultSetKeyFor(id),
       keys = await this._redis.keys(`${baseKey}/*`);
+    if (keys.length === 0) {
+      return; // nothing to do and no point complaining about it
+    }
+
     await this._redis.del(...keys);
   }
 
