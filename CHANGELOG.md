@@ -1,3 +1,12 @@
+<a name="1.0.16"></a>
+### 1.0.16 (2018-06-01)
+
+
+#### Bug Fixes
+
+* pages 2+ of resultsets should include the correct resultSetId & subsequent page  ([dce3c324](git+https://github.com/codeo-za/segmenta.git/commit/dce3c324))
+
+
 <a name="1.0.15"></a>
 ### 1.0.15 (2018-06-01)
 
