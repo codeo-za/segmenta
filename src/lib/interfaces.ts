@@ -27,6 +27,7 @@ export interface ISanitizedQueryOptions extends ISegmentQueryOptions {
 export interface ISegmentResults {
   ids: number[];
   skipped: number;
+  take: number;
   count: number;
   total: number;
   resultSetId?: string;

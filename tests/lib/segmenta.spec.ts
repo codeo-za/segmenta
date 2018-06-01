@@ -313,9 +313,11 @@ describe("Segmenta", () => {
             id = segmentId();
           await sut.add(id, [4, 7]);
           // Act
-          const results1 = await sut.query({query: id, skip: 0});
+          const results1 = await sut.query({query: id, skip: 0, take: 123});
           const results2 = await sut.query({query: results1.resultSetId});
           expect(results1.ids).toEqual(results2.ids);
+          expect(results1.skipped).toEqual(0);
+          expect(results1.take).toEqual(123);
           await sut.dispose(results1.resultSetId);
           await expect(sut.query({query: results1.resultSetId}))
             .rejects.toThrow(`result set ${results1.resultSetId} not found (expired perhaps?)`);

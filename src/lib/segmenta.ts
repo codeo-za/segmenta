@@ -108,6 +108,7 @@ export class Segmenta {
         ids: [],
         total: buffer,
         skipped: 0,
+        take: 0,
         count: buffer
       };
     }
