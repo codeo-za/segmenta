@@ -109,7 +109,8 @@ export class Segmenta {
         total: buffer,
         skipped: 0,
         take: 0,
-        count: buffer
+        count: buffer,
+        paged: false
       };
     }
     const
@@ -125,7 +126,8 @@ export class Segmenta {
         skipped: skip,
         take,
         total,
-        resultSetId
+        resultSetId,
+        paged: shouldSnapshot
       };
     if (!isRequery && resultSetId) {
       await this._dehydrate(resultSetId, buffer);

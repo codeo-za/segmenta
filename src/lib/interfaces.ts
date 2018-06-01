@@ -31,4 +31,5 @@ export interface ISegmentResults {
   count: number;
   total: number;
   resultSetId?: string;
+  paged: boolean;
 }

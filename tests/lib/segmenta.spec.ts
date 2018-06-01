@@ -318,6 +318,7 @@ describe("Segmenta", () => {
           expect(results1.ids).toEqual(results2.ids);
           expect(results1.skipped).toEqual(0);
           expect(results1.take).toEqual(123);
+          expect(results1.paged).toBeTrue();
           await sut.dispose(results1.resultSetId);
           await expect(sut.query({query: results1.resultSetId}))
             .rejects.toThrow(`result set ${results1.resultSetId} not found (expired perhaps?)`);
