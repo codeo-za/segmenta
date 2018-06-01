@@ -1,3 +1,12 @@
+<a name="1.0.14"></a>
+### 1.0.14 (2018-06-01)
+
+
+#### Bug Fixes
+
+* include take in all results ([97d32285](git+https://github.com/codeo-za/segmenta.git/commit/97d32285))
+
+
 <a name="1.0.13"></a>
 ### 1.0.13 (2018-06-01)
 
