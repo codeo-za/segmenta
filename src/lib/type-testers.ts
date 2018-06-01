@@ -15,7 +15,7 @@ export function isNumber(x: any): x is number {
 
 export function isUUID(x: string): boolean {
   return !!(x || "")
-        .match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/);
+        .match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
 }
 
 export function isAddOperation(op: any): op is IAddOperation {

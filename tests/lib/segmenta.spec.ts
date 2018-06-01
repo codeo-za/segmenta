@@ -248,6 +248,14 @@ describe("Segmenta", () => {
           // Assert
           expect(result).toBeTrue();
         });
+        it(`should not get confused about a segment with a uuid in the name`, async () => {
+          // Arrange
+          const query = `get where in '${uuid()}'`;
+          // Act
+          const result = isUUID(query);
+          // Assert
+          expect(result).toBeFalse();
+        });
         it(`should snapshot the single result when skip > 0`, async () => {
           // Arrange
           const
