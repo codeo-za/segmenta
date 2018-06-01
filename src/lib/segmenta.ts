@@ -114,10 +114,10 @@ export class Segmenta {
       };
     }
     const
-      shouldSnapshot = options.skip !== undefined || options.take !== undefined,
+      shouldSnapshot = !isRequery && (options.skip !== undefined || options.take !== undefined),
       skip = options.skip || 0,
       take = options.take || 0,
-      resultSetId = shouldSnapshot ? uuid() : undefined,
+      resultSetId = shouldSnapshot ? uuid() : (isRequery ? options.query : undefined),
       ids = buffer.getOnBitPositions(options.skip || 0, take),
       total = ids.length,
       result = {
