@@ -1,3 +1,12 @@
+<a name="1.0.15"></a>
+### 1.0.15 (2018-06-01)
+
+
+#### Features
+
+* add explicit paged property for results ([1c929b24](git+https://github.com/codeo-za/segmenta.git/commit/1c929b24))
+
+
 <a name="1.0.14"></a>
 ### 1.0.14 (2018-06-01)
 
