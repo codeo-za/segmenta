@@ -1,3 +1,12 @@
+<a name="1.0.13"></a>
+### 1.0.13 (2018-06-01)
+
+
+#### Bug Fixes
+
+* should not erroneously categorise query against segment with uuid in the name as ([3b7a5eee](git+https://github.com/codeo-za/segmenta.git/commit/3b7a5eee))
+
+
 <a name="1.0.12"></a>
 ### 1.0.12 (2018-05-31)
 
