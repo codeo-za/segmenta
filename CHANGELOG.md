@@ -1,3 +1,12 @@
+<a name="1.0.17"></a>
+### 1.0.17 (2018-06-04)
+
+
+#### Features
+
+* add min/max syntax; does not affect resultset caching ([42b3b6e0](git+https://github.com/codeo-za/segmenta.git/commit/42b3b6e0))
+
+
 <a name="1.0.16"></a>
 ### 1.0.16 (2018-06-01)
 
