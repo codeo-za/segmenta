@@ -1,4 +1,4 @@
-import { validate } from "./validation";
+import {validate} from "./validation";
 
 export enum TokenTypes {
   get,
@@ -10,7 +10,10 @@ export enum TokenTypes {
   identifier,
   and,
   or,
-  negate
+  negate,
+  min,
+  max,
+  integer
 }
 
 class Token {
@@ -66,7 +69,10 @@ const tokenTypes = [
   Token.for(TokenTypes.negate, /\bNOT\b/i),
   Token.for(TokenTypes.include, /\bIN\b/i),               // include segment
   Token.for(TokenTypes.and, /\bAND\b/i),
-  Token.for(TokenTypes.or, /\bOR\b/i)
+  Token.for(TokenTypes.or, /\bOR\b/i),
+  Token.for(TokenTypes.min, /\bMIN\b/i),
+  Token.for(TokenTypes.max, /\bMAX\b/i),
+  Token.for(TokenTypes.integer, /\b[0-9]+\b/)
 ];
 
 function sanitizeIdentifier(str: string): string {
@@ -80,9 +86,9 @@ function sanitizeIdentifier(str: string): string {
 function codePos(allCode: string, current: string): number[] {
   const
     absolutePos = allCode.length - current.length,
-      lines = allCode.substr(0, absolutePos).split(new RegExp("\\r\\n|\\n|\\r")),
-      linePos = lines.length,
-      charPos = lines[linePos - 1].length + 1;
+    lines = allCode.substr(0, absolutePos).split(new RegExp("\\r\\n|\\n|\\r")),
+    linePos = lines.length,
+    charPos = lines[linePos - 1].length + 1;
   return [linePos, charPos];
 }
 
@@ -96,7 +102,7 @@ export function tokenize(code: string): IToken[] {
   const result = [] as IToken[];
   let currentCode = code.trim();
   while (currentCode) {
-    const [ line, char ] = codePos(code, currentCode);
+    const [line, char] = codePos(code, currentCode);
     const thisToken = tokenTypes.reduce(
       (acc, cur) => {
         if (acc) {
@@ -114,9 +120,7 @@ export function tokenize(code: string): IToken[] {
     } else {
       result.push({
         type: thisToken.type,
-        value: thisToken.type === TokenTypes.identifier
-          ? sanitizeIdentifier(thisToken.match[0])
-          : undefined,
+        value: sanitize(thisToken.type, thisToken.match[0]),
         line,
         char
       });
@@ -125,4 +129,13 @@ export function tokenize(code: string): IToken[] {
   }
   validate(result);
   return result;
+}
+
+function sanitize(type: TokenTypes, value: string) {
+  switch (type) {
+    case TokenTypes.identifier:
+      return sanitizeIdentifier(value);
+    case TokenTypes.integer:
+      return value; // should already be correct due to regex
+  }
 }

@@ -7,7 +7,9 @@ export enum SegmentaPipelineOperations {
   andIn,
   or,
   orIn,
-  notIn
+  notIn,
+  min,
+  max
 }
 
 enum ExecOperations {
@@ -19,6 +21,7 @@ enum ExecOperations {
 interface ISegmentaPipelineOperation {
   op: SegmentaPipelineOperations;
   segment?: string | SparseBuffer | SegmentaPipeline;
+  value?: number;
 }
 
 let pipelineId = 0;
@@ -83,6 +86,26 @@ export class SegmentaPipeline {
     return this;
   }
 
+  public min() {
+    this._lastOp = SegmentaPipelineOperations.min;
+    return this;
+  }
+
+  public max() {
+    this._lastOp = SegmentaPipelineOperations.max;
+    return this;
+  }
+
+  public int(str: string) {
+    const value = parseInt(str, 10);
+    if (isNaN(value)) {
+      throw new Error(`Invalid number value: ${str}`);
+    }
+    this._operations.push({ op: this._lastOp, value });
+    this._lastOp = SegmentaPipelineOperations.none;
+    return this;
+  }
+
   public startGroup(): SegmentaPipeline {
     if (this._lastOp === SegmentaPipelineOperations.none || this._lastOp === SegmentaPipelineOperations.notIn) {
       const next = new SegmentaPipeline(this._segmenta, this).asGet();
@@ -124,11 +147,21 @@ export class SegmentaPipeline {
   private async _get(): Promise<SparseBuffer> {
     const result = new SparseBuffer();
     for (const op of this._operations) {
+      if (op.op === SegmentaPipelineOperations.min) {
+        result.minimum = op.value;
+        continue;
+      }
+      if (op.op === SegmentaPipelineOperations.max) {
+        result.maximum = op.value;
+        continue;
+      }
+
       if (!op.segment) {
         throw new Error(`No segment on ${JSON.stringify({
           op: SegmentaPipelineOperations[op.op]
         })}`);
       }
+
       if (isPipeline(op.segment)) {
         const opSegment = op.segment as SegmentaPipeline;
         const segmentResults = await opSegment.exec();
@@ -137,12 +170,15 @@ export class SegmentaPipeline {
         }
         op.segment = segmentResults;
       }
+
       if (isString(op.segment)) {
         op.segment = await this._segmenta.getBuffer(op.segment) as SparseBuffer;
       }
+
       if (!isSparseBuffer(op.segment)) {
         throw new Error(`segment not actualized: ${op.segment}`);
       }
+
       switch (op.op) {
         case SegmentaPipelineOperations.orIn:
           result.or(op.segment);

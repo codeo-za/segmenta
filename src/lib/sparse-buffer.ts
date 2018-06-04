@@ -1,11 +1,16 @@
-import {IHunk, Hunk } from "./hunk";
-import { isSparseBuffer, isHunk } from "./type-testers";
+import {IHunk, Hunk} from "./hunk";
+import {isSparseBuffer, isHunk} from "./type-testers";
 
 export interface ISparseBuffer {
   // raw access to internal hunks
   hunks: IHunk[];
   // overall virtual length
   length: number;
+
+  // minimum value to consider when getting on-bit positions
+  minimum: number | undefined;
+  // maximum value to consider when getting on-bit position
+  maximum: number | undefined;
 
   // produces segment ids for the entire virtual space
   getOnBitPositions(skip?: number, take?: number): number[];
@@ -71,6 +76,9 @@ export default class SparseBuffer implements ISparseBuffer {
     return this._hunks;
   }
 
+  public minimum: number | undefined;
+  public maximum: number | undefined;
+
   private _hunks: IHunk[] = [];
 
   constructor(bytes?: Buffer) {
@@ -116,7 +124,12 @@ export default class SparseBuffer implements ISparseBuffer {
     const result = [] as number[];
     this._hunks.forEach(hunk => {
       for (let i = hunk.first; i <= hunk.last; i++) {
-        addOnBitPositionsFor(result, this.at(i) as number, i);
+        addOnBitPositionsFor(
+          result,
+          this.at(i) as number,
+          i,
+          this.minimum,
+          this.maximum);
       }
     });
     if (take < 1) {
@@ -284,31 +297,50 @@ function hunkCoversIndex(
 function addOnBitPositionsFor(
   result: number[],
   src: number,
-  offset: number): void {
+  offset: number,
+  minimum: number | undefined,
+  maximum: number | undefined): void {
   const bitOffset = offset * 8;
+  const newValues = [] as number[];
 
   if (src & 128) {
-    result.push(bitOffset);
+    newValues.push(bitOffset);
   }
   if (src & 64) {
-    result.push(bitOffset + 1);
+    newValues.push(bitOffset + 1);
   }
   if (src & 32) {
-    result.push(bitOffset + 2);
+    newValues.push(bitOffset + 2);
   }
   if (src & 16) {
-    result.push(bitOffset + 3);
+    newValues.push(bitOffset + 3);
   }
   if (src & 8) {
-    result.push(bitOffset + 4);
+    newValues.push(bitOffset + 4);
   }
   if (src & 4) {
-    result.push(bitOffset + 5);
+    newValues.push(bitOffset + 5);
   }
   if (src & 2) {
-    result.push(bitOffset + 6);
+    newValues.push(bitOffset + 6);
   }
   if (src & 1) {
-    result.push(bitOffset + 7);
+    newValues.push(bitOffset + 7);
   }
+  if (newValues.length === 0) {
+    return;
+  }
+  if (minimum === undefined && maximum === undefined) {
+    result.push.apply(result, newValues);
+    return;
+  }
+
+  const min = minimum === undefined ? newValues[0] : minimum;
+  const max = maximum === undefined ? newValues[newValues.length - 1] + 1 : maximum;
+  result.push.apply(
+    result,
+    newValues.filter(i => {
+      return i >= min && i <= max;
+    })
+  );
 }

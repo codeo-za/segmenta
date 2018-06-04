@@ -377,6 +377,24 @@ describe("Segmenta", () => {
         }
       });
 
+      describe(`ranges`, () => {
+        it(`should return only the items within range`, async () => {
+          // Arrange
+          const
+            sut = create(),
+            id = segmentId(),
+            all = [ 1, 3, 5, 7, 9 ],
+            min = 5,
+            max = 25,
+            expected = [ 5, 7, 9];
+          await sut.add(id, all);
+          // Act
+          const result = await sut.query(`get where in '${id}' min ${min} max ${max}`);
+          // Assert
+          expect(result.ids).toEqual(expected);
+        });
+      });
+
       describe(`DSL query`, () => {
         beforeEach(async () => {
           await clearTestKeys();

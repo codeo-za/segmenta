@@ -21,6 +21,9 @@ const tokenActions: ITokenActions = {
   [TokenTypes[TokenTypes.and]]: (p: SegmentaPipeline) => p.and(),
   [TokenTypes[TokenTypes.or]]: (p: SegmentaPipeline) => p.or(),
   [TokenTypes[TokenTypes.negate]]: (p: SegmentaPipeline) => p.not(),
+  [TokenTypes[TokenTypes.min]]: (p: SegmentaPipeline) => p.min(),
+  [TokenTypes[TokenTypes.max]]: (p: SegmentaPipeline) => p.max(),
+  [TokenTypes[TokenTypes.integer]]: (p: SegmentaPipeline, v: string) => p.int(v)
 };
 
 export function parse(tokens: IToken[], segmenta: Segmenta) {
@@ -30,7 +33,8 @@ export function parse(tokens: IToken[], segmenta: Segmenta) {
       if (action === undefined) {
         throw new Error(`Unhandled token type: ${TokenTypes[token.type]}`);
       }
-      if (token.type === TokenTypes.identifier) {
+      if (token.type === TokenTypes.identifier ||
+          token.type === TokenTypes.integer) {
         if (token.value === undefined) {
           throw new Error("Identifier without name!");
         }
