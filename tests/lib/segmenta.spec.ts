@@ -666,6 +666,50 @@ describe("Segmenta", () => {
         });
       });
 
+      describe(`count`, () => {
+        it(`should return zero for a non-existant segment`, async () => {
+          // Arrange
+          const
+            segment = segmentId(),
+            sut = create();
+          // Act
+          const result = await sut.query(`count where in '${segment}'`);
+          // Assert
+          expect(result.ids).toBeEmptyArray();
+          expect(result.total).toEqual(0);
+        });
+        it(`should return count of items in entire segment with no limits`, async () => {
+          // Arrange
+          const
+            segment = segmentId(),
+            data = [ 1, 3, 4, 5, 6, 8, 9],
+            sut = create();
+          await sut.add(segment, data);
+          // Act
+          const result = await sut.query(`count where in '${segment}'`);
+          // Assert
+          expect(result.ids).toBeEmptyArray();
+          expect(result.total).toEqual(data.length);
+        });
+        it(`should return count of items in entire segment and not another with no limits`, async () => {
+          // Arrange
+          const
+            segment1 = segmentId(),
+            segment2 = segmentId(),
+            data1 = [ 1, 3, 4, 5, 6, 8, 9],
+            data2 = [ 1, 3, 12],
+            sut = create(),
+            expected = data1.filter(i => data2.indexOf(i) === -1).length;
+          await sut.add(segment1, data1);
+          await sut.add(segment2, data2);
+          // Act
+          const result = await sut.query(`count where in '${segment1}' and not in '${segment2}'`);
+          // Assert
+          expect(result.ids).toBeEmptyArray();
+          expect(result.total).toEqual(expected);
+        });
+      });
+
       function createIdSource(
         min: number,
         max: number,

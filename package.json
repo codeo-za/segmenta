@@ -17,12 +17,17 @@
     "unleash": "unleash",
     "prerelease": "run-s lint build test",
     "release": "unleash -p",
-    "gulp": "gulp"
+    "gulp": "gulp",
+    "coverage": "jest --coverage"
   },
   "jest": {
     "transform": {
       "^.+\\.ts?$": "ts-jest"
     },
+    "coverageDirectory": "coverage",
+    "coveragePathIgnorePatterns": [
+      "/tests/"
+    ],
     "testMatch": [
       "**/tests/**/*.spec.ts"
     ],
