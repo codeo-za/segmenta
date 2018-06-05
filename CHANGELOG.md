@@ -1,3 +1,12 @@
+<a name="1.0.18"></a>
+### 1.0.18 (2018-06-05)
+
+
+#### Features
+
+* allow skip and take via natural language dsl feat: allow min / max via query opt ([88caa9d5](git+https://github.com/codeo-za/segmenta.git/commit/88caa9d5))
+
+
 <a name="1.0.17"></a>
 ### 1.0.17 (2018-06-04)
 
