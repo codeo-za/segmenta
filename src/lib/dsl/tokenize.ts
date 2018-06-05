@@ -13,7 +13,9 @@ export enum TokenTypes {
   negate,
   min,
   max,
-  integer
+  integer,
+  skip,
+  take
 }
 
 class Token {
@@ -72,6 +74,8 @@ const tokenTypes = [
   Token.for(TokenTypes.or, /\bOR\b/i),
   Token.for(TokenTypes.min, /\bMIN\b/i),
   Token.for(TokenTypes.max, /\bMAX\b/i),
+  Token.for(TokenTypes.skip, /\bSKIP\b/i),
+  Token.for(TokenTypes.take, /\bTAKE\b/i),
   Token.for(TokenTypes.integer, /\b[0-9]+\b/)
 ];
 

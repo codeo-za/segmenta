@@ -65,7 +65,7 @@ function not(a: number, b: number): number {
   return result;
 }
 
-export default class SparseBuffer implements ISparseBuffer {
+export class SparseBuffer implements ISparseBuffer {
   private _size: number = 0;
 
   public get length(): number {
@@ -120,7 +120,7 @@ export default class SparseBuffer implements ISparseBuffer {
    * Gets the indexes of bits which are "on" orIn the sparse buffer
    *
    */
-  public getOnBitPositions(skip: number = 0, take: number = 0): number[] {
+  public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): number[] {
     const result = [] as number[];
     this._hunks.forEach(hunk => {
       for (let i = hunk.first; i <= hunk.last; i++) {
@@ -128,12 +128,15 @@ export default class SparseBuffer implements ISparseBuffer {
           result,
           this.at(i) as number,
           i,
-          this.minimum,
-          this.maximum);
+          min === undefined ? this.minimum : min,
+          max === undefined ? this.maximum : max);
       }
     });
-    if (take < 1) {
+    if (take === undefined || take < 1) {
       take = result.length;
+    }
+    if (skip === undefined) {
+      skip = 0;
     }
     return result.slice(skip, skip + take);
   }
@@ -343,4 +346,19 @@ function addOnBitPositionsFor(
       return i >= min && i <= max;
     })
   );
+}
+
+export class SparseBufferWithPaging extends SparseBuffer {
+  public skip: number | undefined;
+  public take: number | undefined;
+
+  constructor(bytes?: Buffer) {
+    super(bytes);
+  }
+
+  public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): number[] {
+    skip = skip === undefined ? this.skip : skip;
+    take = take === undefined ? this.take : take;
+    return super.getOnBitPositions(skip, take, min, max);
+  }
 }

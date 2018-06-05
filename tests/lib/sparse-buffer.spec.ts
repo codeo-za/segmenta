@@ -1,4 +1,4 @@
-import SparseBuffer from "../../src/lib/sparse-buffer";
+import {SparseBuffer} from "../../src/lib/sparse-buffer";
 import "expect-more-jest";
 import "../matchers";
 import {Hunk, IHunk} from "../../src/lib/hunk";

@@ -18,6 +18,8 @@ export interface ISegmentQueryOptions {
   query?: string;
   skip?: number;
   take?: number;
+  min?: number;
+  max?: number;
 }
 
 export interface ISanitizedQueryOptions extends ISegmentQueryOptions {

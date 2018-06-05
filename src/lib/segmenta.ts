@@ -15,9 +15,9 @@ import {
   ISegmentQueryOptions,
   ISegmentResults
 } from "./interfaces";
-import SparseBuffer from "./sparse-buffer";
+import { SparseBuffer } from "./sparse-buffer";
 
-import {IToken, tokenize} from "./dsl/tokenize";
+import {tokenize} from "./dsl/tokenize";
 import {parse} from "./dsl/parse";
 
 const Redis = require("ioredis");
@@ -115,16 +115,14 @@ export class Segmenta {
     }
     const
       shouldSnapshot = !isRequery && (options.skip !== undefined || options.take !== undefined),
-      skip = options.skip || 0,
-      take = options.take || 0,
       resultSetId = shouldSnapshot ? uuid() : (isRequery ? options.query : undefined),
-      ids = buffer.getOnBitPositions(options.skip || 0, take),
+      ids = buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
       total = ids.length,
       result = {
         ids,
         count: ids.length,
-        skipped: skip,
-        take,
+        skipped: options.skip || 0,
+        take: options.take || 0,
         total,
         resultSetId,
         paged: shouldSnapshot

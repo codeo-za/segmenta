@@ -23,7 +23,9 @@ const tokenActions: ITokenActions = {
   [TokenTypes[TokenTypes.negate]]: (p: SegmentaPipeline) => p.not(),
   [TokenTypes[TokenTypes.min]]: (p: SegmentaPipeline) => p.min(),
   [TokenTypes[TokenTypes.max]]: (p: SegmentaPipeline) => p.max(),
-  [TokenTypes[TokenTypes.integer]]: (p: SegmentaPipeline, v: string) => p.int(v)
+  [TokenTypes[TokenTypes.integer]]: (p: SegmentaPipeline, v: string) => p.int(v),
+  [TokenTypes[TokenTypes.skip]]: (p: SegmentaPipeline) => p.skip(),
+  [TokenTypes[TokenTypes.take]]: (p: SegmentaPipeline) => p.take()
 };
 
 export function parse(tokens: IToken[], segmenta: Segmenta) {

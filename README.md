@@ -145,7 +145,12 @@ as performing operations with those sets. Currently supported are:
         ```
         Query syntax is quite simple:
         ```
-        (GET | COUNT) WHERE IN('segment-id') {(AND|OR|NOT) IN('other-segment')}...
+        (GET | COUNT) WHERE IN('segment-id') 
+                    [(AND|OR|NOT) IN('other-segment')]... 
+                    [MIN {int}] 
+                    [MAX {int}] 
+                    [SKIP {int}] 
+                    [TAKE {int}]
         ```
         - segments are identified by strings (single- or double-quoted)
         - only two operations are supported: `GET` and `COUNT`
@@ -161,6 +166,15 @@ as performing operations with those sets. Currently supported are:
           `GET WHERE IN 'x' and IN 'y'` is equivalent to `GET WHERE IN 'x' AND 'y'`
         - syntax is case-insensitive
           `GET WHERE IN 'x'` is equivalent to `get where in 'x'` and `Get Where In('x')`
+        - `skip` and `take` can also be set on the query options -- when doing so, the skip/take
+            values on query options _take precedence_. This allows easy re-use of natural-language
+            query with changing paging values, but also facilitates natural language paging if that
+            is your preference.
+        - `MIN` and `MAX` set minimum and maximum values to bring back in the result set. These
+            values are _inclusive_. This may be useful if `SKIP` doesn't suit your chunking needs,
+            but rather setting a `MIN` and a `TAKE`
+        - `min` and `max` can also be set on query options. As with `skip` and `take`, the query
+            options values for `min` and `max` override any natural language specification
         - **segment ids are case-sensitive**
           - `get where in 'MY-SEGMENT'` is **NOT** equivalent to `get where in 'my-segment'`
         - segment ids may not contain quotations

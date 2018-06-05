@@ -4,7 +4,7 @@ import {ISegmentaOptions} from "../../src/lib/interfaces";
 import faker from "faker";
 import "expect-more-jest";
 import {endTimer, startTimer, shouldShowTimes} from "../timer";
-import SparseBuffer from "../../src/lib/sparse-buffer";
+import {SparseBuffer} from "../../src/lib/sparse-buffer";
 import "../matchers";
 import {v4 as uuid} from "uuid";
 import {isUUID} from "../../src/lib/type-testers";
@@ -315,7 +315,7 @@ describe("Segmenta", () => {
           // Act
           const results1 = await sut.query({query: id, skip: 0, take: 123});
           const results2 = await sut.query({query: results1.resultSetId});
-          const results3 = await sut.query({query: results1.resultSetId, skip: 0, take: 42 });
+          const results3 = await sut.query({query: results1.resultSetId, skip: 0, take: 42});
           expect(results1.ids).toEqual(results2.ids);
           expect(results1.skipped).toEqual(0);
           expect(results1.take).toEqual(123);
@@ -383,10 +383,10 @@ describe("Segmenta", () => {
           const
             sut = create(),
             id = segmentId(),
-            all = [ 1, 3, 5, 7, 9 ],
+            all = [1, 3, 5, 7, 9],
             min = 5,
             max = 25,
-            expected = [ 5, 7, 9];
+            expected = [5, 7, 9];
           await sut.add(id, all);
           // Act
           const result = await sut.query(`get where in '${id}' min ${min} max ${max}`);
@@ -435,7 +435,7 @@ describe("Segmenta", () => {
           // Arrange
           const sut = create();
           // Act
-          await expect(sut.query({ query: "select * from 'moo-cows'"})).rejects.toThrow(
+          await expect(sut.query({query: "select * from 'moo-cows'"})).rejects.toThrow(
             /syntax error/i
           );
           // Assert
@@ -478,10 +478,10 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'x' and (in 'y' or in 'z')`, async () => {
           // Arrange
           const
-            xData = [ 1, 2, 3, 4, 5 ],
-            yData = [ 2 ],
-            zData = [ 4 ],
-            expected = [ 2, 4 ],
+            xData = [1, 2, 3, 4, 5],
+            yData = [2],
+            zData = [4],
+            expected = [2, 4],
             sut = create();
           await sut.add("x", xData);
           await sut.add("y", yData);
@@ -495,10 +495,10 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'x' and not (in 'y' or in 'z')`, async () => {
           // Arrange
           const
-            xData = [ 1, 2, 3, 4, 5 ],
-            yData = [ 2 ],
-            zData = [ 4 ],
-            expected = [ 1, 3, 5 ],
+            xData = [1, 2, 3, 4, 5],
+            yData = [2],
+            zData = [4],
+            expected = [1, 3, 5],
             sut = create();
           await sut.add("x", xData);
           await sut.add("y", yData);
@@ -513,10 +513,10 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'x' and not (in 'y' and in 'z')`, async () => {
           // Arrange
           const
-            xData = [ 1, 2, 3, 4, 5 ],
-            yData = [ 1, 3 ],
-            zData = [ 3, 5 ],
-            expected = [ 1, 2, 4, 5 ],
+            xData = [1, 2, 3, 4, 5],
+            yData = [1, 3],
+            zData = [3, 5],
+            expected = [1, 2, 4, 5],
             sut = create();
           await sut.add("x", xData);
           await sut.add("y", yData);
@@ -530,10 +530,10 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'x' and 'y' and not (in 'z')"`, async () => {
           // Arrange
           const
-            xData = [ 1, 2, 3, 4, 5 ],
-            yData = [ 3, 4, 5 ],
-            zData = [ 5 ],
-            expected = [ 3, 4 ],
+            xData = [1, 2, 3, 4, 5],
+            yData = [3, 4, 5],
+            zData = [5],
+            expected = [3, 4],
             sut = create();
           await sut.add("x", xData);
           await sut.add("y", yData);
@@ -547,11 +547,11 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'a' or 'b' and not (in 'x' or 'y')"`, async () => {
           // Arrange
           const
-            aData = [ 1, 2, 3 ],
-            bData = [ 4, 5, 6 ],
-            xData = [ 4, 5 ],
-            yData = [ 3, 6 ],
-            expected = [ 1, 2 ],
+            aData = [1, 2, 3],
+            bData = [4, 5, 6],
+            xData = [4, 5],
+            yData = [3, 6],
+            expected = [1, 2],
             sut = create();
           await sut.add("a", aData);
           await sut.add("b", bData);
@@ -566,11 +566,11 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'a' and 'b' and not (in 'x' or 'y')"`, async () => {
           // Arrange
           const
-            aData = [ 1, 2, 3, 4, 5, 6 ],
-            bData = [ 0, 1, 2, 3, 4, 5, 6, 7 ],
-            xData = [ 4, 5 ],
-            yData = [ 3, 6 ],
-            expected = [ 1, 2 ],
+            aData = [1, 2, 3, 4, 5, 6],
+            bData = [0, 1, 2, 3, 4, 5, 6, 7],
+            xData = [4, 5],
+            yData = [3, 6],
+            expected = [1, 2],
             sut = create();
           await sut.add("a", aData);
           await sut.add("b", bData);
@@ -585,11 +585,11 @@ describe("Segmenta", () => {
         it(`should return for "GET WHERE IN 'a' and in 'b' and not (in 'x' or 'y')"`, async () => {
           // Arrange
           const
-            aData = [ 1, 2, 3, 4, 5, 6 ],
-            bData = [ 0, 1, 2, 3, 4, 5, 6, 7 ],
-            xData = [ 4, 5 ],
-            yData = [ 3, 6 ],
-            expected = [ 1, 2 ],
+            aData = [1, 2, 3, 4, 5, 6],
+            bData = [0, 1, 2, 3, 4, 5, 6, 7],
+            xData = [4, 5],
+            yData = [3, 6],
+            expected = [1, 2],
             sut = create();
           await sut.add("a", aData);
           await sut.add("b", bData);
@@ -599,6 +599,70 @@ describe("Segmenta", () => {
           const result = await sut.query("get where in 'a' and in 'b' and not (in 'x' or 'y')");
           // Assert
           expect(result.ids).toEqual(expected);
+        });
+
+        it(`should allow skip and take via natural language`, async () => {
+          // Arrange
+          const
+            data = [ 1, 2, 3, 4, 5 ],
+            segment = segmentId(),
+            sut = create();
+          await sut.add(segment, data);
+          // Act
+          const result = await sut.query(`get where in '${segment}' skip 1 take 2`);
+          // Assert
+          expect(result.ids).toEqual([ 2, 3 ]);
+        });
+        it(`should prefer skip and take from query options`, async () => {
+          // Arrange
+          const
+            data = [ 1, 2, 3, 4, 5 ],
+            segment = segmentId(),
+            sut = create();
+          await sut.add(segment, data);
+          // Act
+          const result = await sut.query({ query: `get where in '${segment}' skip 0 take 1000`, skip: 1, take: 2 });
+          // Assert
+          expect(result.ids).toEqual([ 2, 3 ]);
+        });
+
+        it(`should allow using MIN and TAKE for a different paging strategy`, async () => {
+          // Arrange
+          const
+            data = [ 3, 5, 7, 9 ],
+            segment = segmentId(),
+            sut = create();
+          await sut.add(segment, data);
+          // Act
+          const result = await sut.query(`get where in '${segment}' min 5 take 2`);
+          // Assert
+          expect(result.ids).toEqual([ 5, 7 ]);
+        });
+
+        it(`should allow min & max from query options`, async () => {
+          // Arrange
+          const
+            data = [ 2, 4, 5, 6, 8 ],
+            segment = segmentId(),
+            sut = create();
+          await sut.add(segment, data);
+          // Act
+          const result = await sut.query({ query: `get where in '${segment}'`, min: 4, max: 6 });
+          // Assert
+          expect(result.ids).toEqual([ 4, 5, 6 ]);
+        });
+
+        it(`should prefer min & max from query options`, async () => {
+          // Arrange
+          const
+            data = [ 2, 4, 5, 6, 8 ],
+            segment = segmentId(),
+            sut = create();
+          await sut.add(segment, data);
+          // Act
+          const result = await sut.query({ query: `get where in '${segment}' min 0 max 1000`, min: 4, max: 6 });
+          // Assert
+          expect(result.ids).toEqual([ 4, 5, 6 ]);
         });
       });
 
