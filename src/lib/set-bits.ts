@@ -1,6 +1,7 @@
-import { Redis } from "ioredis";
+import {Redis} from "ioredis";
+
 export async function setup(redis: Redis) {
-  const luaScript = `
+    const luaScript = `
 local key = nil
 local offset = nil
 local segmentKeyCount = 1
@@ -28,8 +29,8 @@ for k, val in ipairs(segmentKeys) do
     redis.call("sadd", indexKey, val);
 end
   `;
-  await redis.defineCommand("setbits", {
-    numberOfKeys: 0,
-    lua: luaScript
-  });
+    await redis.defineCommand("setbits", {
+        numberOfKeys: 0,
+        lua: luaScript
+    });
 }

@@ -1,2 +1,3 @@
-import { Segmenta } from "./lib/segmenta";
+import {Segmenta} from "./lib/segmenta";
+
 export = Segmenta;

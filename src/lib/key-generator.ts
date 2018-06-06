@@ -1,15 +1,15 @@
 export class KeyGenerator {
-  private readonly _prefix: string;
+    private readonly _prefix: string;
 
-  constructor(prefix: string) {
-    this._prefix = prefix;
-  }
+    constructor(prefix: string) {
+        this._prefix = prefix;
+    }
 
-  public dataKeyFor(segmentId: string): string {
-    return `${this._prefix}/data/${segmentId}`;
-  }
+    public dataKeyFor(segmentId: string): string {
+        return `${this._prefix}/data/${segmentId}`;
+    }
 
-  public resultSetKeyFor(resultSetId: string): string {
-    return `${this._prefix}/results/${resultSetId}`;
-  }
+    public resultSetKeyFor(resultSetId: string): string {
+        return `${this._prefix}/results/${resultSetId}`;
+    }
 }
