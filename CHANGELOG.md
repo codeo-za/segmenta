@@ -1,3 +1,12 @@
+<a name="1.0.21"></a>
+### 1.0.21 (2018-06-08)
+
+
+#### Bug Fixes
+
+* @types/ioredis should be a dev-dependency ([e3e10350](git+https://github.com/codeo-za/segmenta.git/commit/e3e10350))
+
+
 <a name="1.0.20"></a>
 ### 1.0.20 (2018-06-08)
 
