@@ -141,6 +141,14 @@ export class Segmenta {
         await tryDo(() => this._tryPut(segmentId, ops));
     }
 
+    public async list(): Promise<string[]> {
+        const indexKeys = await this._redis.keys(`${this._prefix}/*/index`);
+        return indexKeys.map(k => {
+            const parts = k.split("/");
+            return parts[parts.length - 2];
+        }).sort();
+    }
+
     public async dispose(resultSetId?: string): Promise<void> {
         if (!resultSetId) {
             return;
@@ -164,6 +172,9 @@ export class Segmenta {
     }
 
     private async _tryPut(segment: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
+        if (operations.length === 0) {
+            return await this._ensureSegmentExists(segment);
+        }
         validateMaxOperationLength(operations);
         await this._setupLuaFunctions();
         const
@@ -191,6 +202,15 @@ export class Segmenta {
             cmds.push(offset, val);
         }
         await (this._redis as any).setbits(cmds);
+    }
+
+    private async _ensureSegmentExists(segment: string) {
+        const
+            indexKey = `${this._dataKeyForSegment(segment)}/index`,
+            index = await this._redis.sunion(indexKey);
+        if (index.length === 0) {
+            await this._tryPut(segment, [{del: 0}]);
+        }
     }
 
     private async _retrieveBucket(segmentKey: string): Promise<IHunk | undefined> {

@@ -11,6 +11,7 @@
         "test": "jest",
         "lint": "tslint -p .",
         "autotest": "jest --watch",
+        "autolint": "nodemon -x \"run-s lint\" -w src -w tests -e ts",
         "build": "gulp build",
         "autobuild": "nodemon -x \"run-s build\" -w src -w tests -e ts",
         "preunleash": "gulp build",

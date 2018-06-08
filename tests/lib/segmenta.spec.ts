@@ -116,7 +116,7 @@ describe("Segmenta", () => {
             });
         });
         describe(`when have data`, () => {
-            it(`after adding id 2, should be able to get back id 2`, async () => {
+            it(`should be able to get back id 2 after adding id 2`, async () => {
                 // Arrange
                 const
                     sut = create(),
@@ -127,7 +127,7 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual([2]);
             });
-            it(`after adding id 1 & 7, should be able to get back id 1 & 7 ('A')`, async () => {
+            it(`should be able to get back id 1 & 7 ('A') after adding id 1 & 7`, async () => {
                 // Arrange
                 const
                     sut = create(),
@@ -138,7 +138,7 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual([1, 7]);
             });
-            it(`after adding 0, 1, 3, 5, 7, 9, 13, should get that back`, async () => {
+            it(`should get back all after adding 0, 1, 3, 5, 7, 9, 13`, async () => {
                 // Arrange
                 const
                     sut1 = create(),
@@ -151,7 +151,6 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual(ids);
             });
-
             it(`should store segments in chunks of 41960 by default`, async () => {
                 // Arrange
                 const
@@ -170,7 +169,6 @@ describe("Segmenta", () => {
                 expect(sparse1.getOnBitPositions()).toEqual(values.filter(v => v < sut.bucketSize));
                 expect(sparse2.getOnBitPositions()).toEqual(values.filter(v => v >= sut.bucketSize));
             });
-
             it(`should return ids for small segments, one id per segment`, async () => {
                 // Arrange
                 const
@@ -185,7 +183,6 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual(source);
             });
-
             it(`should allow simple fetch-all query with only the segment id`, async () => {
                 // Arrange
                 const
@@ -198,8 +195,7 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual(source);
             });
-
-            it(`speed test: +- 1 000 000 ids over 5 000 000`, async () => {
+            it(`should be reasonably fast: +- 1 000 000 ids over 5 000 000 range`, async () => {
                 if (!shouldShowTimes()) {
                     console.debug([
                         "speed test only enabled when SHOW_TIMES is ",
@@ -717,6 +713,46 @@ describe("Segmenta", () => {
                 });
             });
 
+            describe(`list`, () => {
+                it(`should return empty when no segments added`, async () => {
+                    // Arrange
+                    const
+                        segmentsPrefix = "list-1",
+                        sut = create({ segmentsPrefix });
+                    // Act
+                    const result = await sut.list();
+                    // Assert
+                    expect(result).toBeEmptyArray();
+                });
+                it(`should return the single segment name`, async () => {
+                    // Arrange
+                    const
+                        segmentsPrefix = "list-2",
+                        segment = segmentId(),
+                        sut = create({ segmentsPrefix });
+                    await sut.add(segment, [ 1, 2, 3 ]);
+                    // Act
+                    const result = await sut.list();
+                    // Assert
+                    expect(result).toEqual([segment]);
+                });
+                it(`should return all known segments`, async () => {
+                    // Arrange
+                    const
+                        segmentsPrefix = "list-3",
+                        segment1 = segmentId(),
+                        segment2 = segmentId(),
+                        creator = create({ segmentsPrefix }),
+                        sut = create({ segmentsPrefix });
+                    await creator.add(segment1, [ 5, 6, 7 ]);
+                    await creator.add(segment2, []);
+                    // Act
+                    const result = await sut.list();
+                    // Assert
+                    expect(result).toEqual([segment1, segment2].sort());
+                });
+            });
+
             function createIdSource(
                 min: number,
                 max: number,
@@ -793,7 +829,9 @@ describe("Segmenta", () => {
         const result = new Segmenta(_.assign({}, {
             segmentsPrefix: "segmenta-tests"
         }, config));
-        keyPrefixes.push(result.prefix);
+        if (keyPrefixes.indexOf(result.prefix) === -1) {
+            keyPrefixes.push(result.prefix);
+        }
         return result;
     }
 });
