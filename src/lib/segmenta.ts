@@ -69,8 +69,7 @@ export class Segmenta {
 
     public async getBuffer(...segments: string[]): Promise<SparseBuffer | number> {
         if (segments.length === 1 && looksLikeDSL(segments[0])) {
-            const dslResult = await this._getBufferForDSL(segments[0]);
-            return dslResult;
+            return await this._getBufferForDSL(segments[0]);
         }
         const
             baseKeys = segments.map(s => this._dataKeyForSegment(s)),
