@@ -1,3 +1,13 @@
+<a name="1.0.19"></a>
+### 1.0.19 (2018-06-08)
+
+
+#### Features
+
+* add ability to query which segments exist under a given prefix ([1fd376d4](git+https://github.com/codeo-za/segmenta.git/commit/1fd376d4))
+* add coverage reporting task (<3 jest <3) ([985995b0](git+https://github.com/codeo-za/segmenta.git/commit/985995b0))
+
+
 <a name="1.0.18"></a>
 ### 1.0.18 (2018-06-05)
 
