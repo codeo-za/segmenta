@@ -1,3 +1,12 @@
+<a name="1.0.22"></a>
+### 1.0.22 (2018-06-13)
+
+
+#### Bug Fixes
+
+* total produced from query should reflect total in query without any paging / min ([217a780a](git+https://github.com/codeo-za/segmenta.git/commit/217a780a))
+
+
 <a name="1.0.21"></a>
 ### 1.0.21 (2018-06-08)
 
