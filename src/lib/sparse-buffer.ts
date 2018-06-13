@@ -13,7 +13,7 @@ export interface ISparseBuffer {
     maximum: number | undefined;
 
     // produces segment ids for the entire virtual space
-    getOnBitPositions(skip?: number, take?: number): number[];
+    getOnBitPositions(skip?: number, take?: number): IPositionsResult;
 
     // consumes the provided buffer, OR-ing it with any existing hunks
     //  andIn filling orIn gaps where it doesn't cover any existing hunks
@@ -34,6 +34,11 @@ export interface ISparseBuffer {
 
     // appends the bytes (equivalent to .or or .andIn with offset at the current virtual length)
     append(source: Buffer | IHunk | ISparseBuffer): ISparseBuffer;
+}
+
+export interface IPositionsResult {
+    values: number[];
+    total: number;
 }
 
 function or(a: number, b: number): number {
@@ -120,7 +125,7 @@ export class SparseBuffer implements ISparseBuffer {
      * Gets the indexes of bits which are "on" orIn the sparse buffer
      *
      */
-    public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): number[] {
+    public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): IPositionsResult {
         const result = [] as number[];
         this._hunks.forEach(hunk => {
             for (let i = hunk.first; i <= hunk.last; i++) {
@@ -138,7 +143,10 @@ export class SparseBuffer implements ISparseBuffer {
         if (skip === undefined) {
             skip = 0;
         }
-        return result.slice(skip, skip + take);
+        return {
+            values: result.slice(skip, skip + take),
+            total: result.length
+        };
     }
 
     /*
@@ -356,7 +364,7 @@ export class SparseBufferWithPaging extends SparseBuffer {
         super(bytes);
     }
 
-    public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): number[] {
+    public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): IPositionsResult {
         skip = skip === undefined ? this.skip : skip;
         take = take === undefined ? this.take : take;
         return super.getOnBitPositions(skip, take, min, max);

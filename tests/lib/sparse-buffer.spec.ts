@@ -544,7 +544,7 @@ describe("sparse-buffer", () => {
                 // Act
                 const result = sut.getOnBitPositions();
                 // Assert
-                expect(result).toBeEmptyArray();
+                expect(result.values).toBeEmptyArray();
             });
 
             it(`should return all numbers in a small contiguous array when all bits on`, () => {
@@ -564,7 +564,7 @@ describe("sparse-buffer", () => {
                 const result = sut.getOnBitPositions();
                 endTimer(timeLabel);
                 // Assert
-                expect(result).toEqual(expected);
+                expect(result.values).toEqual(expected);
             });
 
             it(`should return all numbers in a large contiguous array when all bits on`, () => {
@@ -581,7 +581,7 @@ describe("sparse-buffer", () => {
                 sut.or(src);
                 // Act
                 startTimer(timeLabel);
-                const result = sut.getOnBitPositions();
+                const result = sut.getOnBitPositions().values;
                 endTimer(timeLabel);
                 // Assert
                 expect(result).toHaveLength(bits);
@@ -608,7 +608,7 @@ describe("sparse-buffer", () => {
                     .or(allOn, upperBound - 1);
                 // Act
                 startTimer(timeLabel);
-                const result = sut.getOnBitPositions();
+                const result = sut.getOnBitPositions().values;
                 endTimer(timeLabel);
                 // Assert
                 expect(result).toHaveLength(16);
@@ -642,8 +642,8 @@ describe("sparse-buffer", () => {
                     const result1 = sut.getOnBitPositions(0, 1);
                     const result2 = sut.getOnBitPositions(1, 1);
                     // Assert
-                    expect(result1).toEqual(expected1);
-                    expect(result2).toEqual(expected2);
+                    expect(result1.values).toEqual(expected1);
+                    expect(result2.values).toEqual(expected2);
                 });
                 it(`should paginate two numbers on different hunks`, () => {
                     // Arrange
@@ -658,8 +658,8 @@ describe("sparse-buffer", () => {
                     const result1 = sut.getOnBitPositions(0, 1);
                     const result2 = sut.getOnBitPositions(1, 1);
                     // Assert
-                    expect(result1).toEqual(expected1);
-                    expect(result2).toEqual(expected2);
+                    expect(result1.values).toEqual(expected1);
+                    expect(result2.values).toEqual(expected2);
                 });
             });
         });

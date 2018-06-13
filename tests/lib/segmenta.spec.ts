@@ -166,8 +166,8 @@ describe("Segmenta", () => {
                 expect(buffer.hunks).toHaveLength(2);
                 const sparse1 = new SparseBuffer().or(buffer.hunks[0].buffer, 0);
                 const sparse2 = new SparseBuffer().or(buffer.hunks[1].buffer, sut.bucketSize / 8);
-                expect(sparse1.getOnBitPositions()).toEqual(values.filter(v => v < sut.bucketSize));
-                expect(sparse2.getOnBitPositions()).toEqual(values.filter(v => v >= sut.bucketSize));
+                expect(sparse1.getOnBitPositions().values).toEqual(values.filter(v => v < sut.bucketSize));
+                expect(sparse2.getOnBitPositions().values).toEqual(values.filter(v => v >= sut.bucketSize));
             });
             it(`should return ids for small segments, one id per segment`, async () => {
                 // Arrange
@@ -203,7 +203,6 @@ describe("Segmenta", () => {
                     ].join(""));
                     return;
                 }
-                jest.setTimeout(15000);
                 // Arrange
                 const
                     sut = create(),
@@ -391,6 +390,23 @@ describe("Segmenta", () => {
                     const result = await sut.query(`get where in '${id}' min ${min} max ${max}`);
                     // Assert
                     expect(result.ids).toEqual(expected);
+                });
+            });
+
+            describe(`paging`, () => {
+                it(`should set the total to the total number matching the query, irrespective of paging`, async () => {
+                    // Arrange
+                    const
+                        sut = create(),
+                        id = segmentId(),
+                        all = [1, 2, 3, 4, 5];
+                    await sut.add(id, all);
+                    // Act
+                    const result = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    // Assert
+                    expect(result.ids).toEqual([1]);
+                    expect(result.count).toEqual(1);
+                    expect(result.total).toEqual(all.length);
                 });
             });
 

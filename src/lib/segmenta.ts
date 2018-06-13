@@ -109,11 +109,13 @@ export class Segmenta {
         const
             shouldSnapshot = !isRequery && (options.skip !== undefined || options.take !== undefined),
             resultSetId = shouldSnapshot ? uuid() : (isRequery ? options.query : undefined),
-            ids = buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
-            total = ids.length,
+            positionsResult = buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
+            total = positionsResult.total,
+            ids = positionsResult.values,
+            count = ids.length,
             result = {
                 ids,
-                count: ids.length,
+                count,
                 skipped: options.skip || 0,
                 take: options.take || 0,
                 total,

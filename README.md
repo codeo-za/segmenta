@@ -137,7 +137,8 @@ as performing operations with those sets. Currently supported are:
                         .or(set2)   // [ 1, 2, 3, 4, 5 ]
                         .and(set3)  // [ 2, 3, 5 ]
                         .not(set4)  // [ 2, 3 ]
-                        .getOnBitPositions(); // returns the numeric array for bit positions
+                        .getOnBitPositions()
+                        .values; // returns the numeric array for bit positions
         ```
         One may also query for counts only:
         ```

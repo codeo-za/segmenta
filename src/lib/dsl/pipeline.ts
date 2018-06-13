@@ -147,7 +147,7 @@ export class SegmentaPipeline {
 
     private async _count(): Promise<number> {
         const results = await this._get();
-        return results.getOnBitPositions().length;
+        return results.getOnBitPositions().total;
     }
 
     public async exec(): Promise<SparseBufferWithPaging | number> {
