@@ -19,9 +19,12 @@ import {SparseBuffer} from "./sparse-buffer";
 import {tokenize} from "./dsl/tokenize";
 import {parse} from "./dsl/parse";
 import generator from "./debug";
+import LRU from "lru-cache";
 
 const debug = generator(__filename);
 const Redis = require("ioredis");
+
+let lruCache: any; // FIXME: typings are being silly
 
 export class Segmenta {
     private readonly _redis: IRedis;
@@ -65,6 +68,16 @@ export class Segmenta {
             redis: this._redis,
             keyGenerator: this._keyGenerator,
             ttl: _.get(options, "resultsTTL") || DEFAULT_RESULTSET_TTL
+        });
+        const lruCacheSize = parseInt(_.get(options, "lruCacheSize") as string | undefined || "1", 10);
+        lruCache = lruCache || LRU({
+            max: lruCacheSize,
+            length(n: any) {
+                const
+                    bytes = n.values.length * 32,
+                    mb = Math.floor(bytes / 1048576);
+                return mb;
+            }
         });
     }
 
@@ -120,10 +133,27 @@ export class Segmenta {
         debug("query start: ", qry);
         const
             options = sanitizeOptions(qry),
-            isRequery = isUUID(options.query),
-            buffer = isRequery
-                ? await this._rehydrate(options.query)
-                : await this.getBuffer(options.query);
+            isRequery = isUUID(options.query);
+        if (isRequery) {
+            const cached = lruCache.get(options.query);
+            if (cached) {
+                const slice = cached.values.slice(
+                    options.skip || 0,
+                    options.take === undefined ? cached.length : options.take);
+                return {
+                    ids: slice,
+                    count: slice.length,
+                    skipped: options.skip || 0,
+                    take: options.take || 0,
+                    total: cached.total,
+                    resultSetId: options.query,
+                    paged: this._isPaged(options)
+                } as ISegmentResults;
+            }
+        }
+        const buffer = isRequery
+            ? await this._rehydrate(options.query)
+            : await this.getBuffer(options.query);
         if (isNumber(buffer)) {
             debug("query is count only...");
             return {
@@ -153,6 +183,7 @@ export class Segmenta {
                 paged
             };
         if (shouldSnapshot) {
+            lruCache.set(resultSetId, buffer.getOnBitPositions());
             await this._dehydrate(resultSetId as string, buffer);
         }
         return result;
@@ -193,8 +224,13 @@ export class Segmenta {
         if (!resultSetId) {
             return;
         }
+        lruCache.del(resultSetId || "");
         debug(`disposing of resultset ${resultSetId}`);
         await this._resultsetHydrator.dispose(resultSetId);
+    }
+
+    public clearLRUCache() {
+        lruCache.reset();
     }
 
     private async _dehydrate(id: string, data: SparseBuffer): Promise<void> {

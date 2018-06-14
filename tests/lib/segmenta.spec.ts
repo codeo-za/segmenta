@@ -195,7 +195,7 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual(source);
             });
-            fdescribe(`speed test`, () => {
+            describe(`speed test`, () => {
                 beforeEach(() => {
                     jest.setTimeout(15000);
                 });
@@ -304,6 +304,7 @@ describe("Segmenta", () => {
                         id = segmentId();
                     await sut.add(id, [3, 5]);
                     const originalResults = await sut.query({query: id, skip: 1});
+                    sut.clearLRUCache();
                     await sleep(1100);
                     // Act
                     await expect(sut.query({query: originalResults.resultSetId})).rejects.toThrow(

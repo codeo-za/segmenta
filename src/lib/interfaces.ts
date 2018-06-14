@@ -5,6 +5,7 @@ export interface ISegmentaOptions {
     segmentsPrefix?: string;
     bucketSize?: number;
     resultsTTL?: number;
+    lruCacheSize?: number;
 }
 
 export interface IAddOperation {
