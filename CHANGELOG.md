@@ -1,3 +1,13 @@
+<a name="1.0.25"></a>
+### 1.0.25 (2018-06-14)
+
+
+#### Bug Fixes
+
+* use lru cache to speed up paging on large existing resultsets ([3bf58d68](git+https://github.com/codeo-za/segmenta.git/commit/3bf58d68))
+* typo in package.json ([03efb952](git+https://github.com/codeo-za/segmenta.git/commit/03efb952))
+
+
 <a name="1.0.24"></a>
 ### 1.0.24 (2018-06-14)
 
