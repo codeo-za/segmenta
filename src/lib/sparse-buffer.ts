@@ -1,5 +1,7 @@
 import {IHunk, Hunk} from "./hunk";
 import {isSparseBuffer, isHunk} from "./type-testers";
+import generator from "./debug";
+const debug = generator(__filename);
 
 export interface ISparseBuffer {
     // raw access to internal hunks
@@ -126,6 +128,7 @@ export class SparseBuffer implements ISparseBuffer {
      *
      */
     public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): IPositionsResult {
+        debug(`calculating on-bit positions for virtual size: ${this.length}`);
         const result = [] as number[];
         this._hunks.forEach(hunk => {
             for (let i = hunk.first; i <= hunk.last; i++) {
@@ -137,11 +140,11 @@ export class SparseBuffer implements ISparseBuffer {
                     max === undefined ? this.maximum : max);
             }
         });
-        if (take === undefined || take < 1) {
-            take = result.length;
-        }
         if (skip === undefined) {
             skip = 0;
+        }
+        if (take === undefined || take < 1) {
+            take = result.length;
         }
         return {
             values: result.slice(skip, skip + take),
@@ -311,6 +314,9 @@ function addOnBitPositionsFor(
     offset: number,
     minimum: number | undefined,
     maximum: number | undefined): void {
+    if (src === 0) {
+        return;
+    }
     const bitOffset = offset * 8;
     const newValues = [] as number[];
 

@@ -1,6 +1,8 @@
 import {IToken, TokenTypes} from "./tokenize";
 import {SegmentaPipeline} from "./pipeline";
 import {Segmenta} from "../segmenta";
+import generator from "../debug";
+const debug = generator(__filename);
 
 // TODO: come up with better names than "p1" andIn "p2"
 type p1 = (pipeline: SegmentaPipeline) => SegmentaPipeline;
@@ -29,6 +31,7 @@ const tokenActions: ITokenActions = {
 };
 
 export function parse(tokens: IToken[], segmenta: Segmenta) {
+    debug(`parsing ${tokens.length} tokens`);
     return tokens.reduce(
         (pipeline, token) => {
             const action = tokenActions[TokenTypes[token.type]];

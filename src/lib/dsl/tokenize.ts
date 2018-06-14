@@ -1,4 +1,6 @@
 import {validate} from "./validation";
+import generator from "../debug";
+const debug = generator(__filename);
 
 export enum TokenTypes {
     get,
@@ -103,6 +105,7 @@ function generateSyntaxErrorFor(current: string, linePos: number, charPos: numbe
 }
 
 export function tokenize(code: string): IToken[] {
+    debug(`tokenize ${code}`);
     const result = [] as IToken[];
     let currentCode = code.trim();
     while (currentCode) {

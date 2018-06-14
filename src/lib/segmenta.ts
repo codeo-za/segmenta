@@ -16,10 +16,11 @@ import {
     ISegmentResults
 } from "./interfaces";
 import {SparseBuffer} from "./sparse-buffer";
-
 import {tokenize} from "./dsl/tokenize";
 import {parse} from "./dsl/parse";
+import generator from "./debug";
 
+const debug = generator(__filename);
 const Redis = require("ioredis");
 
 export class Segmenta {
@@ -69,27 +70,54 @@ export class Segmenta {
 
     public async getBuffer(...segments: string[]): Promise<SparseBuffer | number> {
         if (segments.length === 1 && looksLikeDSL(segments[0])) {
+            debug(`getting buffer for query: ${segments[0]}`);
             return await this._getBufferForDSL(segments[0]);
         }
+        debug(`getting buffer for segment(s): ${segments.join(",")}`);
         const
             baseKeys = segments.map(s => this._dataKeyForSegment(s)),
             segmentKeys = await this._getSegmentKeys(...baseKeys),
             result = new SparseBuffer(),
-            fetchers = segmentKeys.map(s => this._retrieveBucket(s)),
-            hunkResults = await Promise.all(fetchers),
-            hunks = _.orderBy(_.filter(hunkResults, h => !!h) as IHunk[], h => h.first);
+            // fetchers = segmentKeys.map(s => this._retrieveBucket(s)),
+            // hunkResults = await Promise.all(fetchers),
+            mfetched = await this._multiGetBuffers(segmentKeys),
+            mhunkResults = this._makeHunks(mfetched, segmentKeys),
+            hunks = _.orderBy(_.filter(mhunkResults, h => !!h) as IHunk[], h => h.first);
         _.forEach(hunks, h => result.or(h));
         return result;
+    }
+
+    private async _multiGetBuffers(keys: string[]): Promise<Buffer[]> {
+        if (keys.length === 0) {
+            return [];
+        }
+        const
+            Command = Redis.Command as any, // work around unknown ctor
+            send = this._redis.sendCommand as (cmd: any) => void, // work around invalid arg count for sendCommand
+            cmd = new Command("mget", keys);
+        send.call(this._redis, cmd);
+        return await cmd.promise;
+    }
+
+    private _makeHunks(buffers: Buffer[], keys: string[]): IHunk[] {
+        return keys.map((key, idx) => {
+            const
+                parts = key.split("/"),
+                [start] = parts[parts.length - 1].split("-").map(parseInt);
+            return new Hunk(buffers[idx], start / 8);
+        });
     }
 
     private async _getBufferForDSL(query: string): Promise<SparseBuffer | number> {
         const
             tokens = tokenize(query),
             pipeline = parse(tokens, this);
+        debug(`Execute pipeline for ${query}`);
         return await pipeline.exec();
     }
 
     public async query(qry: ISegmentQueryOptions | string): Promise<ISegmentResults> {
+        debug("query start: ", qry);
         const
             options = sanitizeOptions(qry),
             isRequery = isUUID(options.query),
@@ -97,6 +125,7 @@ export class Segmenta {
                 ? await this._rehydrate(options.query)
                 : await this.getBuffer(options.query);
         if (isNumber(buffer)) {
+            debug("query is count only...");
             return {
                 ids: [],
                 total: buffer,
@@ -107,7 +136,8 @@ export class Segmenta {
             };
         }
         const
-            shouldSnapshot = !isRequery && (options.skip !== undefined || options.take !== undefined),
+            paged = this._isPaged(options),
+            shouldSnapshot = !isRequery && paged,
             resultSetId = shouldSnapshot ? uuid() : (isRequery ? options.query : undefined),
             positionsResult = buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
             total = positionsResult.total,
@@ -120,12 +150,20 @@ export class Segmenta {
                 take: options.take || 0,
                 total,
                 resultSetId,
-                paged: shouldSnapshot
+                paged
             };
-        if (!isRequery && resultSetId) {
-            await this._dehydrate(resultSetId, buffer);
+        if (shouldSnapshot) {
+            await this._dehydrate(resultSetId as string, buffer);
         }
         return result;
+    }
+
+    private _isPaged(options: ISanitizedQueryOptions): boolean {
+        return options.skip !== undefined ||
+            options.take !== undefined ||
+            options.min !== undefined ||
+            options.max !== undefined ||
+            !!options.query.match(/(\sskip\s|\stake\s|\smin\s|\smax\s)/i);
     }
 
     public async put(segmentId: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
@@ -143,6 +181,7 @@ export class Segmenta {
     }
 
     public async list(): Promise<string[]> {
+        debug(`listing segments under ${this._prefix}`);
         const indexKeys = await this._redis.keys(`${this._prefix}/*/index`);
         return indexKeys.map(k => {
             const parts = k.split("/");
@@ -154,14 +193,17 @@ export class Segmenta {
         if (!resultSetId) {
             return;
         }
+        debug(`disposing of resultset ${resultSetId}`);
         await this._resultsetHydrator.dispose(resultSetId);
     }
 
     private async _dehydrate(id: string, data: SparseBuffer): Promise<void> {
+        debug(`stashing resultset ${id} for later...`);
         await this._resultsetHydrator.dehydrate(id, data);
     }
 
     private async _rehydrate(resultSetId: string): Promise<SparseBuffer> {
+        debug(`rehydrating existing resultset: ${resultSetId}`);
         return await this._resultsetHydrator.rehydrate(resultSetId);
     }
 
@@ -169,6 +211,7 @@ export class Segmenta {
         if (this._luaFunctionsSetup) {
             return;
         }
+        debug("setting up lua functions");
         await setup(this._redis);
     }
 
@@ -182,7 +225,9 @@ export class Segmenta {
             baseKey = this._dataKeyForSegment(segment),
             cmds = [] as (string | number)[];
 
-        let lastSegmentName = null;
+        let
+            lastSegmentName = null,
+            commands = 0;
 
         for (const op of operations) {
             const [id, val] = isAdd(op)
@@ -201,7 +246,9 @@ export class Segmenta {
             }
             const offset = id % this._bucketSize;
             cmds.push(offset, val);
+            commands++;
         }
+        debug(`setting bits with ${commands} commands`);
         await (this._redis as any).setbits(cmds);
     }
 

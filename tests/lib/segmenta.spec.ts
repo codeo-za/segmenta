@@ -195,48 +195,56 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual(source);
             });
-            it(`should be reasonably fast: +- 1 000 000 ids over 5 000 000 range`, async () => {
-                if (!shouldShowTimes()) {
-                    console.debug([
-                        "speed test only enabled when SHOW_TIMES is ",
-                        "environment variable is set to a truthy value"
-                    ].join(""));
-                    return;
-                }
-                // Arrange
-                const
-                    sut = create(),
-                    query = "large-speed-test",
-                    range5 = {min: 1, max: 2},
-                    accept = () => faker.random.number(range5) === 1,
-                    label0 = "generating +- 1 000 000 ids";
-                startTimer(label0);
-                const
-                    source1 = createIdSource(1, 10000, accept),
-                    source2 = createIdSource(500000, 1500000, accept),
-                    source3 = createIdSource(3000000, 4000000, accept),
-                    source = source1.concat(source2).concat(source3),
-                    expectedCount = source1.length + source2.length + source3.length,
-                    label1 = `populating ${expectedCount} ids`,
-                    label2 = `retrieving ids`;
-                endTimer(label0);
-                // Act
-                startTimer(label1);
-                const copy = source.slice(0);
-                while (copy.length) {
-                    await sut.add(query, copy.splice(0, 200000));
-                }
-                // await sut.add(segment, copy);
-                endTimer(label1);
-                startTimer(label2);
-                const result = await sut.query({query});
-                endTimer(label2);
-                // Assert
+            describe(`speed test`, () => {
+                beforeEach(() => {
+                    jest.setTimeout(15000);
+                });
+                afterEach(() => {
+                    jest.setTimeout(5000);
+                });
+                it(`should be reasonably fast to query: +- 1 000 000 ids over 5 000 000 range`, async () => {
+                    if (!shouldShowTimes()) {
+                        console.debug([
+                            "speed test only enabled when SHOW_TIMES is ",
+                            "environment variable is set to a truthy value"
+                        ].join(""));
+                        return;
+                    }
+                    // Arrange
+                    const
+                        sut = create(),
+                        query = "large-speed-test",
+                        range5 = {min: 1, max: 2},
+                        accept = () => faker.random.number(range5) === 1,
+                        label0 = "generating +- 1 000 000 ids";
+                    startTimer(label0);
+                    const
+                        source1 = createIdSource(1, 10000, accept),
+                        source2 = createIdSource(500000, 1500000, accept),
+                        source3 = createIdSource(3000000, 4000000, accept),
+                        source = source1.concat(source2).concat(source3),
+                        expectedCount = source1.length + source2.length + source3.length,
+                        label1 = `populating ${expectedCount} ids`,
+                        label2 = `retrieving ids`;
+                    endTimer(label0);
+                    // Act
+                    startTimer(label1);
+                    const copy = source.slice(0);
+                    while (copy.length) {
+                        await sut.add(query, copy.splice(0, 200000));
+                    }
+                    // await sut.add(segment, copy);
+                    endTimer(label1);
+                    startTimer(label2);
+                    const result = await sut.query({query});
+                    endTimer(label2);
+                    // Assert
 
-                expect(result.ids.length).toEqual(expectedCount);
-                expect(result.total).toEqual(expectedCount);
+                    expect(result.ids.length).toEqual(expectedCount);
+                    expect(result.total).toEqual(expectedCount);
+                });
+
             });
-
             describe(`snapshot resultsets`, () => {
                 it(`should recognise a uuid`, () => {
                     // Arrange
@@ -339,6 +347,7 @@ describe("Segmenta", () => {
                     // Act
                     const result = await sut.query({query: id});
                     expect(result.ids).toBeEquivalentTo(daBirthday);
+                    expect(result.paged).toBeFalse();
                     expect(result.resultSetId).not.toBeDefined();
                     const keys = await redis.keys(`${sut.prefix}/results/*`);
                     expect(keys).toBeEmptyArray();
@@ -405,6 +414,7 @@ describe("Segmenta", () => {
                     const result = await sut.query(`get where in "${id}" skip 0 take 1`);
                     // Assert
                     expect(result.ids).toEqual([1]);
+                    expect(result.paged).toBeTrue();
                     expect(result.count).toEqual(1);
                     expect(result.total).toEqual(all.length);
                 });
@@ -803,6 +813,7 @@ describe("Segmenta", () => {
             // Assert
             expect(result.ids).toBeEquivalentTo(expected);
         });
+
         it(`should facilitate multiple add / del commands, in order`, async () => {
             // Arrange
             const
