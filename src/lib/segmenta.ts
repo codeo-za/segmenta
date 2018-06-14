@@ -15,7 +15,7 @@ import {
     ISegmentQueryOptions,
     ISegmentResults
 } from "./interfaces";
-import {SparseBuffer} from "./sparse-buffer";
+import {IPositionsResult, SparseBuffer, SparseBufferWithPaging} from "./sparse-buffer";
 import {tokenize} from "./dsl/tokenize";
 import {parse} from "./dsl/parse";
 import generator from "./debug";
@@ -81,7 +81,7 @@ export class Segmenta {
         });
     }
 
-    public async getBuffer(...segments: string[]): Promise<SparseBuffer | number> {
+    public async getBuffer(...segments: string[]): Promise<SparseBufferWithPaging | number> {
         if (segments.length === 1 && looksLikeDSL(segments[0])) {
             debug(`getting buffer for query: ${segments[0]}`);
             return await this._getBufferForDSL(segments[0]);
@@ -90,7 +90,7 @@ export class Segmenta {
         const
             baseKeys = segments.map(s => this._dataKeyForSegment(s)),
             segmentKeys = await this._getSegmentKeys(...baseKeys),
-            result = new SparseBuffer(),
+            result = new SparseBufferWithPaging(),
             // fetchers = segmentKeys.map(s => this._retrieveBucket(s)),
             // hunkResults = await Promise.all(fetchers),
             mfetched = await this._multiGetBuffers(segmentKeys),
@@ -121,7 +121,7 @@ export class Segmenta {
         });
     }
 
-    private async _getBufferForDSL(query: string): Promise<SparseBuffer | number> {
+    private async _getBufferForDSL(query: string): Promise<SparseBufferWithPaging | number> {
         const
             tokens = tokenize(query),
             pipeline = parse(tokens, this);
@@ -137,9 +137,10 @@ export class Segmenta {
         if (isRequery) {
             const cached = lruCache.get(options.query);
             if (cached) {
-                const slice = cached.values.slice(
-                    options.skip || 0,
-                    options.take === undefined ? cached.length : options.take);
+                const
+                    skip = options.skip || 0,
+                    take = options.take === undefined ? cached.total : options.take,
+                    slice = cached.values.slice(skip, take + skip);
                 return {
                     ids: slice,
                     count: slice.length,
@@ -169,7 +170,9 @@ export class Segmenta {
             paged = this._isPaged(options),
             shouldSnapshot = !isRequery && paged,
             resultSetId = shouldSnapshot ? uuid() : (isRequery ? options.query : undefined),
-            positionsResult = buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
+            positionsResult = shouldSnapshot
+                ? await this._paginateLocal(buffer, options, resultSetId as string)
+                : buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
             total = positionsResult.total,
             ids = positionsResult.values,
             count = ids.length,
@@ -182,11 +185,43 @@ export class Segmenta {
                 resultSetId,
                 paged
             };
-        if (shouldSnapshot) {
-            lruCache.set(resultSetId, buffer.getOnBitPositions());
-            await this._dehydrate(resultSetId as string, buffer);
-        }
         return result;
+    }
+
+    private async _paginateLocal(
+        buffer: SparseBuffer,
+        options: ISanitizedQueryOptions,
+        resultSetId: string): Promise<IPositionsResult> {
+        const
+            min = this._first(options.min, buffer.minimum),
+            max = this._first(options.max, buffer.maximum),
+            skip = this._first(options.skip, _.get(buffer, "skip")),
+            take = this._first(options.take, _.get(buffer, "take"));
+        if (buffer instanceof SparseBufferWithPaging) {
+            buffer.clearPaging();
+        }
+        const
+            all = buffer.getOnBitPositions(),
+            start = skip === undefined ? 0 : skip,
+            end = take === undefined ? all.total : take + start;
+        let values = all.values;
+        if (min !== undefined || max !== undefined) {
+            values = values.filter(i => (min === undefined || i >= min) && (max === undefined || i <= max));
+        }
+        values = values.slice(start, end);
+
+        lruCache.set(resultSetId, all);
+        await this._dehydrate(resultSetId, buffer);
+        return {
+            values,
+            total: all.total
+        };
+    }
+
+    private _first(...numbers: (number | undefined)[]) {
+        return numbers.reduce((acc, cur) =>
+            acc === undefined ? cur : acc
+        );
     }
 
     private _isPaged(options: ISanitizedQueryOptions): boolean {

@@ -279,6 +279,25 @@ describe("Segmenta", () => {
                     expect(result2.ids).toEqual(expected);
                 });
 
+                it(`should requry with skip and take correctly`, async () => {
+                    // Arrange
+                    const
+                        sut = create(),
+                        id = segmentId(),
+                        all = [1, 2, 3, 4, 5],
+                        expected = [3];
+                    await sut.add(id, all);
+                    // Act
+                    const first = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    const second = await sut.query({
+                        query: first.resultSetId,
+                        skip: 2,
+                        take: 1
+                    });
+                    // Assert
+                    expect(second.ids).toEqual(expected);
+                });
+
                 it(`should snapshot the result when the result page-size is < total`, async () => {
                     // Arrange
                     const
@@ -323,7 +342,7 @@ describe("Segmenta", () => {
                     const results1 = await sut.query({query: id, skip: 0, take: 123});
                     const results2 = await sut.query({query: results1.resultSetId});
                     const results3 = await sut.query({query: results1.resultSetId, skip: 0, take: 42});
-                    expect(results1.ids).toEqual(results2.ids);
+                    expect(results2.ids).toEqual(results1.ids);
                     expect(results1.skipped).toEqual(0);
                     expect(results1.take).toEqual(123);
                     expect(results1.paged).toBeTrue();

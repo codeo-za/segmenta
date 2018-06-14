@@ -412,4 +412,11 @@ export class SparseBufferWithPaging extends SparseBuffer {
         take = take === undefined ? this.take : take;
         return super.getOnBitPositions(skip, take, min, max);
     }
+
+    public clearPaging() {
+        this.minimum = undefined;
+        this.maximum = undefined;
+        this.skip = undefined;
+        this.take = undefined;
+    }
 }
