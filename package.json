@@ -8,7 +8,7 @@
         "dist/**/*"
     ],
     "scripts": {
-        "test": "jest",
+        "test": "jest --reporter jest-spec-reporter",
         "lint": "tslint -p .",
         "autotest": "jest --watch",
         "autolint": "nodemon -x \"run-s lint\" -w src -w tests -e ts",
@@ -102,6 +102,7 @@
         "gulp-npm-run": "0.0.3",
         "gulp-typescript": "^4.0.2",
         "jest": "^22.4.3",
+        "jest-spec-reporter": "^1.0.3",
         "node-ts": "^2.1.2",
         "nodemon": "^1.17.5",
         "npm-run-all": "^4.1.3",
