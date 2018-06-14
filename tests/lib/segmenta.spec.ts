@@ -195,7 +195,7 @@ describe("Segmenta", () => {
                 // Assert
                 expect(result.ids).toEqual(source);
             });
-            describe(`speed test`, () => {
+            fdescribe(`speed test`, () => {
                 beforeEach(() => {
                     jest.setTimeout(15000);
                 });

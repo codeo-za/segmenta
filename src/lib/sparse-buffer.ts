@@ -1,7 +1,12 @@
 import {IHunk, Hunk} from "./hunk";
 import {isSparseBuffer, isHunk} from "./type-testers";
 import generator from "./debug";
+
 const debug = generator(__filename);
+
+interface INumberArray extends Array<number> {
+    count: number;
+}
 
 export interface ISparseBuffer {
     // raw access to internal hunks
@@ -129,13 +134,30 @@ export class SparseBuffer implements ISparseBuffer {
      */
     public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): IPositionsResult {
         debug(`calculating on-bit positions for virtual size: ${this.length}`);
-        const result = [] as number[];
+        const
+            result = [] as any as INumberArray,
+            scratch = new Array(8);
+        result.count = 0;
+        let src;
         this._hunks.forEach(hunk => {
-            for (let i = hunk.first; i <= hunk.last; i++) {
+            for (let offset = hunk.first; offset <= hunk.last; offset++) {
+                scratch[0]
+                    = scratch[1]
+                    = scratch[2]
+                    = scratch[3]
+                    = scratch[4]
+                    = scratch[5]
+                    = scratch[6]
+                    = scratch[7] = undefined;
+                src = hunk.at(offset);
+                if (src === 0) {
+                    continue;
+                }
                 addOnBitPositionsFor(
                     result,
-                    this.at(i) as number,
-                    i,
+                    scratch,
+                    src,
+                    offset,
                     min === undefined ? this.minimum : min,
                     max === undefined ? this.maximum : max);
             }
@@ -145,6 +167,14 @@ export class SparseBuffer implements ISparseBuffer {
         }
         if (take === undefined || take < 1) {
             take = result.length;
+        }
+        result.length = result.count;
+        (result as any).count = undefined;
+        if (skip === 0 && take >= result.length) {
+            return {
+                values: result,
+                total: result.length
+            };
         }
         return {
             values: result.slice(skip, skip + take),
@@ -309,7 +339,8 @@ function hunkCoversIndex(
 }
 
 function addOnBitPositionsFor(
-    result: number[],
+    result: INumberArray,
+    scratch: number[],
     src: number,
     offset: number,
     minimum: number | undefined,
@@ -317,49 +348,55 @@ function addOnBitPositionsFor(
     if (src === 0) {
         return;
     }
+
     const bitOffset = offset * 8;
-    const newValues = [] as number[];
 
     if (src & 128) {
-        newValues.push(bitOffset);
+        scratch[0] = bitOffset;
     }
     if (src & 64) {
-        newValues.push(bitOffset + 1);
+        scratch[1] = bitOffset + 1;
     }
     if (src & 32) {
-        newValues.push(bitOffset + 2);
+        scratch[2] = bitOffset + 2;
     }
     if (src & 16) {
-        newValues.push(bitOffset + 3);
+        scratch[3] = bitOffset + 3;
     }
     if (src & 8) {
-        newValues.push(bitOffset + 4);
+        scratch[4] = bitOffset + 4;
     }
     if (src & 4) {
-        newValues.push(bitOffset + 5);
+        scratch[5] = bitOffset + 5;
     }
     if (src & 2) {
-        newValues.push(bitOffset + 6);
+        scratch[6] = bitOffset + 6;
     }
     if (src & 1) {
-        newValues.push(bitOffset + 7);
+        scratch[7] = bitOffset + 7;
     }
-    if (newValues.length === 0) {
-        return;
-    }
+
     if (minimum === undefined && maximum === undefined) {
-        result.push.apply(result, newValues);
+        for (let i = 0; i < 8; i++) {
+            const x = scratch[i];
+            if (x !== undefined) {
+                result[result.count++] = scratch[i];
+            }
+        }
+        if (result.count >= result.length) {
+            const add = result.length < 50000 ? (result.length < 1000 ? 1000 : result.length) : 50000;
+            result.length += add;
+        }
         return;
     }
 
-    const min = minimum === undefined ? newValues[0] : minimum;
-    const max = maximum === undefined ? newValues[newValues.length - 1] + 1 : maximum;
-    result.push.apply(
-        result,
-        newValues.filter(i => {
-            return i >= min && i <= max;
-        })
-    );
+    const min = minimum === undefined ? bitOffset : minimum;
+    const max = maximum === undefined ? bitOffset + 8 : maximum;
+    scratch.filter(i => {
+        return i >= min && i <= max;
+    }).forEach((value) => {
+        result[result.count++] = value;
+    });
 }
 
 export class SparseBufferWithPaging extends SparseBuffer {
