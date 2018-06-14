@@ -1,3 +1,12 @@
+<a name="1.0.23"></a>
+### 1.0.23 (2018-06-14)
+
+
+#### Features
+
+* add debug logging (set DEBUG=segmenta:*) perf: use custom mget to get multiple b ([c9137ef8](git+https://github.com/codeo-za/segmenta.git/commit/c9137ef8))
+
+
 <a name="1.0.22"></a>
 ### 1.0.22 (2018-06-13)
 
