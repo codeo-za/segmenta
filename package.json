@@ -8,7 +8,7 @@
         "dist/**/*"
     ],
     "scripts": {
-        "test": "jest --reporter jest-spec-reporter",
+        "test": "jest --reporters jest-spec-reporter",
         "lint": "tslint -p .",
         "autotest": "jest --watch",
         "autolint": "nodemon -x \"run-s lint\" -w src -w tests -e ts",
