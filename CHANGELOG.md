@@ -1,3 +1,12 @@
+<a name="1.0.26"></a>
+### 1.0.26 (2018-06-15)
+
+
+#### Bug Fixes
+
+* paging with page size < skip perf: when about to cache results, only get full re ([6242ad0b](git+https://github.com/codeo-za/segmenta.git/commit/6242ad0b))
+
+
 <a name="1.0.25"></a>
 ### 1.0.25 (2018-06-14)
 
