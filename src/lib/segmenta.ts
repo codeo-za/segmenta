@@ -275,7 +275,9 @@ export class Segmenta {
 
     private async _rehydrate(resultSetId: string): Promise<SparseBuffer> {
         debug(`rehydrating existing resultset: ${resultSetId}`);
-        return await this._resultsetHydrator.rehydrate(resultSetId);
+        const result = await this._resultsetHydrator.rehydrate(resultSetId);
+        lruCache.set(resultSetId, result.getOnBitPositions()); // ensure it's back in the lru cache too
+        return result;
     }
 
     private async _setupLuaFunctions() {
