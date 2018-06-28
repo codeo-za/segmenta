@@ -130,7 +130,7 @@ export class Segmenta {
     }
 
     public async query(qry: ISegmentQueryOptions | string): Promise<ISegmentResults> {
-        debug("query start: ", qry);
+        debug(`query start (${this._prefix}): `, qry);
         const
             options = sanitizeOptions(qry),
             isRequery = isUUID(options.query);
