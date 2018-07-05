@@ -1,3 +1,12 @@
+<a name="1.0.28"></a>
+### 1.0.28 (2018-07-05)
+
+
+#### Bug Fixes
+
+* cache and re-use IORedis clients ([71daccda](git+https://github.com/codeo-za/segmenta.git/commit/71daccda))
+
+
 <a name="1.0.27"></a>
 ### 1.0.27 (2018-06-28)
 
