@@ -1,4 +1,4 @@
-import {Redis as IRedis} from "ioredis";
+import {Redis as IRedis, RedisOptions} from "ioredis";
 import {v4 as uuid} from "uuid";
 import {isUUID, isString, isNumber, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
 import {Hunk, IHunk} from "./hunk";
@@ -25,6 +25,23 @@ const debug = generator(__filename);
 const Redis = require("ioredis");
 
 let lruCache: any; // FIXME: typings are being silly
+
+interface IRedisClientCache {
+    [key: string]: IRedis;
+}
+
+const redisClients: IRedisClientCache = {};
+
+function findOrCreateRedisClientFor(options: RedisOptions | undefined): IRedis {
+    const optionsJson = JSON.stringify(options) as string;
+    const existing = redisClients[optionsJson];
+    if (existing) {
+        return existing;
+    }
+    const client = new Redis(options);
+    redisClients[optionsJson] = client;
+    return client;
+}
 
 export class Segmenta {
     private readonly _redis: IRedis;
@@ -59,7 +76,8 @@ export class Segmenta {
             this._bucketSize -= mod; // segments must be byte-aligned to avoid confusion
         }
         _.set(options as object, "redisOptions.return_buffers", true);
-        this._redis = new Redis(_.get(options, "redisOptions"));
+        // this._redis = new Redis(_.get(options, "redisOptions"));
+        this._redis = findOrCreateRedisClientFor(_.get(options, "redisOptions"));
         this._redis.on("connect", async () => {
             await this._setupLuaFunctions();
         });
