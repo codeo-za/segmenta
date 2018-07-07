@@ -76,7 +76,6 @@ export class Segmenta {
             this._bucketSize -= mod; // segments must be byte-aligned to avoid confusion
         }
         _.set(options as object, "redisOptions.return_buffers", true);
-        // this._redis = new Redis(_.get(options, "redisOptions"));
         this._redis = findOrCreateRedisClientFor(_.get(options, "redisOptions"));
         this._redis.on("connect", async () => {
             await this._setupLuaFunctions();
