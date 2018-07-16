@@ -385,6 +385,17 @@ describe("Segmenta", () => {
                     expect(result).toEqual(oneDay);
                 });
 
+                it(`should throw if the resultset is not found by id`, async () => {
+                    // Arrange
+                    const
+                        sut = create(),
+                        id = uuid();
+                    // Act
+                    await expect(sut.query({query: id}))
+                        .rejects.toThrow(`result set ${id} not found (expired perhaps?)`)
+                    // Assert
+                });
+
                 describe(`dispose`, () => {
                     it(`should not throw if the given resultset does not exist`, async () => {
                         // Arrange
