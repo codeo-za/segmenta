@@ -37,3 +37,18 @@ export interface ISegmentResults {
     resultSetId?: string;
     paged: boolean;
 }
+
+export interface ISegmentaStats {
+    bytes: number;
+    buckets: number;
+    size: string;
+    segments: ISegmentaSegmentStats[];
+}
+
+export interface ISegmentaSegmentStats {
+    segment: string;
+    bytes: number;
+    buckets: number;
+    size: string;
+    index: Array<number[]>;
+}

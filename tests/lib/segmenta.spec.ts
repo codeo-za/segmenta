@@ -392,7 +392,7 @@ describe("Segmenta", () => {
                         id = uuid();
                     // Act
                     await expect(sut.query({query: id}))
-                        .rejects.toThrow(`result set ${id} not found (expired perhaps?)`)
+                        .rejects.toThrow(`result set ${id} not found (expired perhaps?)`);
                     // Assert
                 });
 
@@ -775,7 +775,7 @@ describe("Segmenta", () => {
                     // Arrange
                     const
                         segmentsPrefix = "list-1",
-                        sut = create({ segmentsPrefix });
+                        sut = create({segmentsPrefix});
                     // Act
                     const result = await sut.list();
                     // Assert
@@ -786,8 +786,8 @@ describe("Segmenta", () => {
                     const
                         segmentsPrefix = "list-2",
                         segment = segmentId(),
-                        sut = create({ segmentsPrefix });
-                    await sut.add(segment, [ 1, 2, 3 ]);
+                        sut = create({segmentsPrefix});
+                    await sut.add(segment, [1, 2, 3]);
                     // Act
                     const result = await sut.list();
                     // Assert
@@ -799,9 +799,9 @@ describe("Segmenta", () => {
                         segmentsPrefix = "list-3",
                         segment1 = segmentId(),
                         segment2 = segmentId(),
-                        creator = create({ segmentsPrefix }),
-                        sut = create({ segmentsPrefix });
-                    await creator.add(segment1, [ 5, 6, 7 ]);
+                        creator = create({segmentsPrefix}),
+                        sut = create({segmentsPrefix});
+                    await creator.add(segment1, [5, 6, 7]);
                     await creator.add(segment2, []);
                     // Act
                     const result = await sut.list();
@@ -881,6 +881,130 @@ describe("Segmenta", () => {
             await expect(sut.put(segment, commands)).rejects.toThrow();
             // Assert
         });
+    });
+
+    describe(`stats`, () => {
+        beforeEach(async () => {
+            await clearTestKeys();
+        });
+
+        it(`should return empty when no items within prefix`, async () => {
+            // Arrange
+            const
+                sut = create();
+            // Act
+            const result = await sut.fetchStats();
+            // Assert
+            expect(result).toExist();
+            expect(result.bytes).toEqual(0);
+            expect(result.buckets).toEqual(0);
+            expect(result.size).toEqual("0 b");
+            expect(result.segments).toBeEmptyArray();
+        });
+
+        it(`should return stats for a single number in a single segment`, async () => {
+            // Arrange
+            const
+                bucketSize = 8,
+                segment = segmentId(),
+                sut = create({bucketSize});
+            await sut.put(segment, [{add: 1}]);
+            // Act
+            const result = await sut.fetchStats();
+            // Assert
+            expect(result.bytes).toEqual(1);
+            expect(result.size).toEqual("1 b");
+            expect(result.buckets).toEqual(1);
+            expect(result.segments).toBeArray();
+            expect(result.segments).toHaveLength(1);
+            const segmentData = result.segments[0];
+            expect(segmentData.bytes).toEqual(1);
+            expect(segmentData.size).toEqual("1 b");
+            expect(segmentData.buckets).toEqual(1);
+            expect(segmentData.segment).toEqual(segment);
+        });
+
+        it(`should return stats for a single number in a two segments`, async () => {
+            // Arrange
+            const
+                bucketSize = 8,
+                segment1 = segmentId(),
+                segment2 = segmentId(),
+                sut = create({bucketSize});
+            await sut.put(segment1, [{add: 1}]);
+            await sut.put(segment2, [{add: 12}]);
+            // Act
+            const result = await sut.fetchStats();
+            // Assert
+            expect(result.bytes).toEqual(2);
+            expect(result.size).toEqual("2 b");
+            expect(result.buckets).toEqual(2);
+            expect(result.segments).toBeArray();
+            expect(result.segments).toHaveLength(2);
+
+            console.log(JSON.stringify(result));
+
+            const segmentData1 = result.segments[0];
+            expect(segmentData1.bytes).toEqual(1);
+            expect(segmentData1.size).toEqual("1 b");
+            expect(segmentData1.buckets).toEqual(1);
+            expect(segmentData1.segment).toEqual(segment1);
+
+            const segmentData2 = result.segments[1];
+            expect(segmentData2.bytes).toEqual(1);
+            expect(segmentData2.size).toEqual("1 b");
+            expect(segmentData2.buckets).toEqual(1);
+            expect(segmentData2.segment).toEqual(segment2);
+        });
+
+        it(`should return stats for a two numbers in a single segment, same bucket`, async () => {
+            // Arrange
+            const
+                bucketSize = 8,
+                segment1 = segmentId(),
+                sut = create({bucketSize});
+            await sut.put(segment1, [{add: 1}, {add: 5}]);
+            // Act
+            const result = await sut.fetchStats();
+            // Assert
+            expect(result.bytes).toEqual(1);
+            expect(result.size).toEqual("1 b");
+            expect(result.buckets).toEqual(1);
+            expect(result.segments).toBeArray();
+            expect(result.segments).toHaveLength(1);
+
+            const segmentData1 = result.segments[0];
+            expect(segmentData1.bytes).toEqual(1);
+            expect(segmentData1.size).toEqual("1 b");
+            expect(segmentData1.buckets).toEqual(1);
+            expect(segmentData1.segment).toEqual(segment1);
+
+        });
+
+        it(`should return stats for a two numbers in a single segment, different buckets`, async () => {
+            // Arrange
+            const
+                bucketSize = 8,
+                segment1 = segmentId(),
+                sut = create({bucketSize});
+            await sut.put(segment1, [{add: 1}, {add: 32}]);
+            // Act
+            const result = await sut.fetchStats();
+            // Assert
+            expect(result.bytes).toEqual(2);
+            expect(result.size).toEqual("2 b");
+            expect(result.buckets).toEqual(2);
+            expect(result.segments).toBeArray();
+            expect(result.segments).toHaveLength(1);
+
+            const segmentData1 = result.segments[0];
+            expect(segmentData1.bytes).toEqual(2);
+            expect(segmentData1.size).toEqual("2 b");
+            expect(segmentData1.buckets).toEqual(2);
+            expect(segmentData1.segment).toEqual(segment1);
+
+        });
+
     });
 
     function create(config?: ISegmentaOptions) {

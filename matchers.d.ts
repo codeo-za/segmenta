@@ -6,5 +6,6 @@ declare namespace jest {
         // noinspection JSUnusedLocalSymbols
         toBeEquivalentTo<T>(array: T[]): void;
         toBeAFunction(): void;
+        toExist(): void;
     }
 }

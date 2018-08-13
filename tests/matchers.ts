@@ -75,6 +75,16 @@ import {SparseBuffer} from "../src/lib/sparse-buffer";
                         }
                     };
                 },
+                toExist: () => {
+                    return {
+                        compare: (actual: any) => {
+                            return doAssertions(() => {
+                                assert(actual !== undefined &&
+                                        actual !== null, `Expected ${actual} to exist`);
+                            });
+                        }
+                    };
+                }
             });
         });
 })();

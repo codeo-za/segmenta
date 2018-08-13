@@ -11,7 +11,7 @@ import {
     IAddOperation,
     IDelOperation,
     ISanitizedQueryOptions,
-    ISegmentaOptions,
+    ISegmentaOptions, ISegmentaSegmentStats, ISegmentaStats,
     ISegmentQueryOptions,
     ISegmentResults
 } from "./interfaces";
@@ -108,8 +108,6 @@ export class Segmenta {
             baseKeys = segments.map(s => this._dataKeyForSegment(s)),
             segmentKeys = await this._getSegmentKeys(...baseKeys),
             result = new SparseBufferWithPaging(),
-            // fetchers = segmentKeys.map(s => this._retrieveBucket(s)),
-            // hunkResults = await Promise.all(fetchers),
             mfetched = await this._multiGetBuffers(segmentKeys),
             mhunkResults = this._makeHunks(mfetched, segmentKeys),
             hunks = _.orderBy(_.filter(mhunkResults, h => !!h) as IHunk[], h => h.first);
@@ -203,6 +201,62 @@ export class Segmenta {
                 paged
             };
         return result;
+    }
+
+    public async fetchStats(): Promise<ISegmentaStats> {
+        const segments = await this.list();
+        const result = {
+            bytes: 0,
+            buckets: 0,
+            size: "0 b",
+            segments: [] as ISegmentaSegmentStats[]
+        } as ISegmentaStats;
+        for (const segment of segments) {
+            const
+                index = await this._fetchIndex(segment),
+                buckets = index.map(s => {
+                    const parts = s.split("/");
+                    return parts[parts.length - 1];
+                }).map(idx => idx.split("-").map(p => parseInt(p, 10)))
+                    .filter(parts => !isNaN(parts[0]) && !isNaN(parts[1])),
+                segmentData = {
+                    segment,
+                    bytes: 0,
+                    buckets: index.length,
+                    size: "0 b",
+                    index: buckets
+                } as ISegmentaSegmentStats;
+            buckets.forEach(idx => {
+                const [lower, upper] = idx;
+                if (isNaN(lower) || isNaN(upper)) {
+                    return;
+                }
+                const
+                    totalNumbers = (upper - lower + 1), // range is inclusive
+                    bytes = totalNumbers / 8;
+                segmentData.bytes += bytes;
+            });
+            segmentData.size = this._humanReadableSize(segmentData.bytes);
+            result.segments.push(segmentData);
+
+            result.buckets += segmentData.buckets;
+            result.bytes += segmentData.bytes;
+        }
+        result.size = this._humanReadableSize(result.bytes);
+        return result;
+    }
+
+    private _suffixes: string[] = ["b", "Kb", "Mb"];
+
+    private _humanReadableSize(bytes: number): string {
+        let idx = 0;
+        while (bytes > 1024 && idx < this._suffixes.length - 1) {
+            bytes /= 1024;
+            idx++;
+        }
+
+        const numericPart = `${bytes.toFixed(2)}`.replace(/\.00$/, "");
+        return `${numericPart} ${this._suffixes[idx]}`;
     }
 
     private async _paginateLocal(
@@ -343,23 +397,15 @@ export class Segmenta {
     }
 
     private async _ensureSegmentExists(segment: string) {
-        const
-            indexKey = `${this._dataKeyForSegment(segment)}/index`,
-            index = await this._redis.sunion(indexKey);
+        const index = await this._fetchIndex(segment);
         if (index.length === 0) {
             await this._tryPut(segment, [{del: 0}]);
         }
     }
 
-    private async _retrieveBucket(segmentKey: string): Promise<IHunk | undefined> {
-        const buffer = await this._redis.getBuffer(segmentKey);
-        if (!buffer) {
-            return undefined;
-        }
-        const
-            parts = segmentKey.split("/"),
-            [start] = parts[parts.length - 1].split("-").map(parseInt);
-        return new Hunk(buffer, start / 8);
+    private async _fetchIndex(segment: string): Promise<string[]> {
+        const indexKey = `${this._dataKeyForSegment(segment)}/index`;
+        return await this._redis.sunion(indexKey);
     }
 
     private async _getSegmentKeys(...baseKeys: string[]): Promise<string[]> {
