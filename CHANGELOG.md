@@ -1,3 +1,12 @@
+<a name="1.0.31"></a>
+### 1.0.31 (2018-08-27)
+
+
+#### Bug Fixes
+
+* should be able to requery with min, max, skip and take together properly: min &m ([525702b0](git+https://github.com/codeo-za/segmenta.git/commit/525702b0))
+
+
 <a name="1.0.30"></a>
 ### 1.0.30 (2018-08-27)
 
