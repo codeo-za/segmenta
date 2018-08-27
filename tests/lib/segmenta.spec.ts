@@ -902,7 +902,8 @@ describe("Segmenta", () => {
         });
     });
 
-    describe(`stats`, () => {
+    xdescribe(`stats`, () => {
+        // WIP: this is not ready for prime-time yet
         beforeEach(async () => {
             await clearTestKeys();
         });
