@@ -1,3 +1,17 @@
+<a name="1.0.30"></a>
+### 1.0.30 (2018-08-27)
+
+
+#### Bug Fixes
+
+* requerying results with min and max should restrict output      to within min -> ([20201266](git+https://github.com/codeo-za/segmenta.git/commit/20201266))
+
+
+#### Features
+
+* first pass at stats for segments ([8e59fb31](git+https://github.com/codeo-za/segmenta.git/commit/8e59fb31))
+
+
 <a name="1.0.29"></a>
 ### 1.0.29 (2018-07-05)
 
