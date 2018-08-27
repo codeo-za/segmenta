@@ -155,9 +155,10 @@ export class Segmenta {
                 const
                     skip = options.skip || 0,
                     take = options.take === undefined ? cached.total : options.take,
-                    slice = cached.values.slice(skip, take + skip)
+                    slice = cached.values
                         .filter((i: number) => (options.min === undefined || i >= options.min) &&
-                            (options.max === undefined || i <= options.max));
+                            (options.max === undefined || i <= options.max))
+                        .slice(skip, take + skip);
                 return {
                     ids: slice,
                     count: slice.length,
