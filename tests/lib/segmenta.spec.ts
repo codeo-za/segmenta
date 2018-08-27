@@ -298,6 +298,25 @@ describe("Segmenta", () => {
                     expect(second.ids).toEqual(expected);
                 });
 
+                it(`should requery with the min and max correclty`, async () => {
+                    // Arrange
+                    const
+                        sut = create(),
+                        id = segmentId(),
+                        all = [1, 2, 3, 4, 5],
+                        expected = [3];
+                    await sut.add(id, all);
+                    // Act
+                    const first = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    const second = await sut.query({
+                        query: first.resultSetId,
+                        min: 3,
+                        max: 3
+                    });
+                    // Assert
+                    expect(second.ids).toEqual(expected);
+                });
+
                 it(`should snapshot the result when the result page-size is < total`, async () => {
                     // Arrange
                     const
