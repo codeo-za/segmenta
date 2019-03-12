@@ -1,7 +1,7 @@
-import {Pipeline, Redis} from "ioredis";
-import {SparseBuffer} from "./sparse-buffer";
-import {KeyGenerator} from "./key-generator";
-import {DEFAULT_RESULTSET_TTL} from "./constants";
+import { Pipeline, Redis } from "ioredis";
+import { SparseBuffer } from "./sparse-buffer";
+import { KeyGenerator } from "./key-generator";
+import { DEFAULT_RESULTSET_TTL } from "./constants";
 
 export interface IResultSetHydratorOptions {
     redis: Redis;

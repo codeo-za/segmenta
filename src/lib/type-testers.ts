@@ -1,8 +1,8 @@
-import {IAddOperation, IDelOperation} from "./interfaces";
-import {ISparseBuffer, SparseBuffer} from "./sparse-buffer";
-import {Hunk, IHunk} from "./hunk";
-import {types} from "util";
-import {SegmentaPipeline} from "./dsl/pipeline";
+import { IAddOperation, IDelOperation } from "./interfaces";
+import { ISparseBuffer, SparseBuffer } from "./sparse-buffer";
+import { Hunk, IHunk } from "./hunk";
+import { types } from "util";
+import { SegmentaPipeline } from "./dsl/pipeline";
 
 /* tslint:disable-next-line:ban-types */
 export function isFunction(x: any): x is Function {

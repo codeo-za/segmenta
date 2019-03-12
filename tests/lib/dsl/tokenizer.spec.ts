@@ -1,4 +1,4 @@
-import {IToken, ISimpleToken, tokenize, TokenTypes} from "../../../src/lib/dsl/tokenize";
+import { IToken, ISimpleToken, tokenize, TokenTypes } from "../../../src/lib/dsl/tokenize";
 import "../../matchers";
 import _ = require("lodash");
 

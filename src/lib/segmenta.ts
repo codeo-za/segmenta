@@ -1,12 +1,12 @@
-import {Redis as IRedis, RedisOptions} from "ioredis";
-import {v4 as uuid} from "uuid";
-import {isUUID, isString, isNumber, isAddOperation as isAdd, isDelOperation as isDel} from "./type-testers";
-import {Hunk, IHunk} from "./hunk";
+import {Redis as IRedis, RedisOptions } from "ioredis";
+import {v4 as uuid } from "uuid";
+import { isUUID, isString, isNumber, isAddOperation as isAdd, isDelOperation as isDel } from "./type-testers";
+import { Hunk, IHunk } from "./hunk";
 import _ from "lodash";
-import {setup} from "./set-bits";
-import {ResultSetHydrator} from "./resultset-hydrator";
-import {KeyGenerator} from "./key-generator";
-import {MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL} from "./constants";
+import { setup } from "./set-bits";
+import { ResultSetHydrator } from "./resultset-hydrator";
+import { KeyGenerator } from "./key-generator";
+import { MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL } from "./constants";
 import {
     IAddOperation,
     IDelOperation,
@@ -15,9 +15,9 @@ import {
     ISegmentQueryOptions,
     ISegmentResults
 } from "./interfaces";
-import {IPositionsResult, SparseBuffer, SparseBufferWithPaging} from "./sparse-buffer";
-import {tokenize} from "./dsl/tokenize";
-import {parse} from "./dsl/parse";
+import { IPositionsResult, SparseBuffer, SparseBufferWithPaging } from "./sparse-buffer";
+import { tokenize } from "./dsl/tokenize";
+import { parse } from "./dsl/parse";
 import generator from "./debug";
 import LRU from "lru-cache";
 

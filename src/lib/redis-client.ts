@@ -1,4 +1,4 @@
-import {Redis, RedisOptions, Command} from "ioredis";
+import { Redis, RedisOptions, Command } from "ioredis";
 
 const Client = require("ioredis");
 

@@ -1,4 +1,4 @@
-import {Redis} from "ioredis";
+import { Redis } from "ioredis";
 
 export async function setup(redis: Redis) {
     const luaScript = `

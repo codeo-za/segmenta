@@ -1,5 +1,5 @@
-import {types} from "util";
-import {isFunction} from "./type-testers";
+import { types } from "util";
+import { isFunction } from "./type-testers";
 
 export interface IHunk {
     // raw access to the buffer

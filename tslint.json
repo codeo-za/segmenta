@@ -80,7 +80,8 @@
         "ordered-imports": false,
         "one-variable-per-declaration": false,
         "no-consecutive-blank-lines": true,
-        "no-bitwise": false
+        "no-bitwise": false,
+        "whitespace": [ true, "check-module" ]
     },
     "rulesDirectory": [
         "tslint-consistent-codestyle"

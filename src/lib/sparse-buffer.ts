@@ -1,5 +1,5 @@
-import {IHunk, Hunk} from "./hunk";
-import {isSparseBuffer, isHunk} from "./type-testers";
+import { IHunk, Hunk } from "./hunk";
+import { isSparseBuffer, isHunk } from "./type-testers";
 import generator from "./debug";
 
 const debug = generator(__filename);

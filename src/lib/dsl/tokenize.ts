@@ -1,4 +1,4 @@
-import {validate} from "./validation";
+import { validate } from "./validation";
 import generator from "../debug";
 const debug = generator(__filename);
 

@@ -1,15 +1,15 @@
-import {Segmenta} from "../../src/lib/segmenta";
-import {ISegmentaOptions} from "../../src/lib/interfaces";
+import { Segmenta } from "../../src/lib/segmenta";
+import { ISegmentaOptions } from "../../src/lib/interfaces";
 
 import faker from "faker";
 import "expect-more-jest";
-import {endTimer, startTimer, shouldShowTimes} from "../timer";
-import {SparseBuffer} from "../../src/lib/sparse-buffer";
+import { endTimer, startTimer, shouldShowTimes } from "../timer";
+import { SparseBuffer } from "../../src/lib/sparse-buffer";
 import "../matchers";
-import {v4 as uuid} from "uuid";
-import {isUUID} from "../../src/lib/type-testers";
-import {KeyGenerator} from "../../src/lib/key-generator";
-import {Redis as IRedis} from "ioredis";
+import {v4 as uuid } from "uuid";
+import { isUUID } from "../../src/lib/type-testers";
+import { KeyGenerator } from "../../src/lib/key-generator";
+import {Redis as IRedis } from "ioredis";
 import _ from "lodash";
 
 const Redis = require("ioredis");

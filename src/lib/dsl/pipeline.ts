@@ -1,6 +1,6 @@
-import {SparseBuffer, SparseBufferWithPaging} from "../sparse-buffer";
-import {Segmenta} from "../segmenta";
-import {isString, isSparseBuffer, isPipeline} from "../type-testers";
+import { SparseBuffer, SparseBufferWithPaging } from "../sparse-buffer";
+import { Segmenta } from "../segmenta";
+import { isString, isSparseBuffer, isPipeline } from "../type-testers";
 import generator from "../debug";
 const debug = generator(__filename);
 

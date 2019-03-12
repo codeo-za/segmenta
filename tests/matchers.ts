@@ -1,4 +1,4 @@
-import {SparseBuffer} from "../src/lib/sparse-buffer";
+import { SparseBuffer } from "../src/lib/sparse-buffer";
 
 (() => {
     function failWith(message: string) {

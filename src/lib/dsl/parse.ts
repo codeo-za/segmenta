@@ -1,6 +1,6 @@
-import {IToken, TokenTypes} from "./tokenize";
-import {SegmentaPipeline} from "./pipeline";
-import {Segmenta} from "../segmenta";
+import { IToken, TokenTypes } from "./tokenize";
+import { SegmentaPipeline } from "./pipeline";
+import { Segmenta } from "../segmenta";
 import generator from "../debug";
 const debug = generator(__filename);
 

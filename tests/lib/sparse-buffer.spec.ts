@@ -1,8 +1,8 @@
-import {SparseBuffer} from "../../src/lib/sparse-buffer";
+import { SparseBuffer } from "../../src/lib/sparse-buffer";
 import "expect-more-jest";
 import "../matchers";
-import {Hunk, IHunk} from "../../src/lib/hunk";
-import {startTimer, endTimer} from "../timer";
+import { Hunk, IHunk } from "../../src/lib/hunk";
+import { startTimer, endTimer } from "../timer";
 
 describe("sparse-buffer", () => {
     it(`should export the SparseBuffer class as default`, () => {

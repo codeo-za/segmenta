@@ -1,4 +1,4 @@
-import {IToken, TokenTypes} from "./tokenize";
+import { IToken, TokenTypes } from "./tokenize";
 
 declare type TokenCollectionValidator = (tokens: IToken[]) => void;
 

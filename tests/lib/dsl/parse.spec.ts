@@ -1,4 +1,4 @@
-import {parse} from "../../../src/lib/dsl/parse";
+import { parse } from "../../../src/lib/dsl/parse";
 import "../../matchers";
 
 describe(`parse.ts`, () => {

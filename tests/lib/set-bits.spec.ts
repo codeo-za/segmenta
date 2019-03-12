@@ -1,4 +1,4 @@
-import {setup} from "../../src/lib/set-bits";
+import { setup } from "../../src/lib/set-bits";
 import "../matchers";
 
 const Redis = require("ioredis");
