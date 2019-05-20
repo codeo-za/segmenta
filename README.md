@@ -10,7 +10,7 @@ as performing operations with those sets. Currently supported are:
     - [ 1, 2, 3 ] or  [ 2, 3, 4 ] = [ 1, 2, 3, 4 ]
 - `not`: produce the set C of numbers which are in A excluding those in B
     - [ 1, 2, 3 ] not [ 2, 3, 4 ] = [ 1 ]
-  
+
 ## How to use?
 
 1. `import` or `require` _segmenta_
@@ -67,8 +67,9 @@ as performing operations with those sets. Currently supported are:
           total: number
         }
         ```
-    - at the moment, only simple queries are supported (entire segments). The client can perform
-    `and`, `or`, and `not` operations for now. A DSL is coming.
+    - simple queries are supported (entire segments), *however a DSL is provided
+        for easier querying*. The client can perform `and`, `or`, and `not` operations
+        on results if they are retreived as buffers (see example below in DSL area).
         1. Simple query, all results returned:
         ```javascript
         await segmenta.add("my-new-segment", [ 10, 20, 30 ]);
@@ -114,7 +115,7 @@ as performing operations with those sets. Currently supported are:
         await segmenta.dispose(result.resultSetId);
         ```
         _Snapshots are **only** created when queries are performed with a positive integer `skip` or `take` value_
-    - There is a DSL for querying in a more readable manner:
+    - **There is a DSL for querying in a more readable manner**:
         ```
         await segmenta.add("set1", [ 1, 2 ]);
         await segmenta.add("set2", [ 3, 4, 5 ]);
@@ -125,7 +126,7 @@ as performing operations with those sets. Currently supported are:
         const result1 = await segmenta.query(query);
         // or, with paging options:
         const result2 = await segmenta.query({ query, skip: 10, take: 100 });
-        
+
         // the query syntax above is analogous to the following
         //  more manual query mechanism:
         const set1 = await segmenta.getBuffer("set1");
@@ -146,11 +147,11 @@ as performing operations with those sets. Currently supported are:
         ```
         Query syntax is quite simple:
         ```
-        (GET | COUNT) WHERE IN('segment-id') 
-                    [(AND|OR|NOT) IN('other-segment')]... 
-                    [MIN {int}] 
-                    [MAX {int}] 
-                    [SKIP {int}] 
+        (GET | COUNT) WHERE IN('segment-id')
+                    [(AND|OR|NOT) IN('other-segment')]...
+                    [MIN {int}]
+                    [MAX {int}]
+                    [SKIP {int}]
                     [TAKE {int}]
         ```
         - segments are identified by strings (single- or double-quoted)
@@ -163,7 +164,7 @@ as performing operations with those sets. Currently supported are:
           - retreives values which are in 'x' and also not in 'y' or 'z';
         - brackets around segment ids are optional:
           `GET WHERE IN 'x'` is equivalent to `GET WHERE IN('x')`
-        - the `IN` keyworkd is optional after the first usage:
+        - the `IN` keyword is optional after the first usage:
           `GET WHERE IN 'x' and IN 'y'` is equivalent to `GET WHERE IN 'x' AND 'y'`
         - syntax is case-insensitive
           `GET WHERE IN 'x'` is equivalent to `get where in 'x'` and `Get Where In('x')`
