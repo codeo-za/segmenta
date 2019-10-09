@@ -1,17 +1,19 @@
-import {Redis as IRedis, RedisOptions } from "ioredis";
-import {v4 as uuid } from "uuid";
-import { isUUID, isString, isNumber, isAddOperation as isAdd, isDelOperation as isDel } from "./type-testers";
+import { Redis as IRedis, RedisOptions } from "ioredis";
+import { v4 as uuid } from "uuid";
+import { isAddOperation as isAdd, isDelOperation as isDel, isNumber, isString, isUUID } from "./type-testers";
 import { Hunk, IHunk } from "./hunk";
 import _ from "lodash";
 import { setup } from "./set-bits";
 import { ResultSetHydrator } from "./resultset-hydrator";
 import { KeyGenerator } from "./key-generator";
-import { MAX_OPERATIONS_PER_BATCH, DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL } from "./constants";
+import { DEFAULT_BUCKET_SIZE, DEFAULT_RESULTSET_TTL, MAX_OPERATIONS_PER_BATCH } from "./constants";
 import {
     IAddOperation,
     IDelOperation,
     ISanitizedQueryOptions,
-    ISegmentaOptions, ISegmentaSegmentStats, ISegmentaStats,
+    ISegmentaOptions,
+    ISegmentaSegmentStats,
+    ISegmentaStats,
     ISegmentQueryOptions,
     ISegmentResults
 } from "./interfaces";
@@ -91,26 +93,25 @@ export class Segmenta {
             max: lruCacheSize,
             length(n: any) {
                 const
-                    bytes = n.values.length * 32,
-                    mb = Math.floor(bytes / 1048576);
-                return mb;
+                    bytes = n.values.length * 32;
+                return Math.floor(bytes / 1048576);
             }
         });
     }
 
     public async getBuffer(...segments: string[]): Promise<SparseBufferWithPaging | number> {
         if (segments.length === 1 && looksLikeDSL(segments[0])) {
-            debug(`getting buffer for query: ${segments[0]}`);
+            debug(`getting buffer for query: ${ segments[0] }`);
             return await this._getBufferForDSL(segments[0]);
         }
-        debug(`getting buffer for segment(s): ${segments.join(",")}`);
+        debug(`getting buffer for segment(s): ${ segments.join(",") }`);
         const
             baseKeys = segments.map(s => this._dataKeyForSegment(s)),
             segmentKeys = await this._getSegmentKeys(...baseKeys),
             result = new SparseBufferWithPaging(),
-            mfetched = await this._multiGetBuffers(segmentKeys),
-            mhunkResults = this._makeHunks(mfetched, segmentKeys),
-            hunks = _.orderBy(_.filter(mhunkResults, h => !!h) as IHunk[], h => h.first);
+            multiFetched = await this._multiGetBuffers(segmentKeys),
+            multiHunkResults = this._makeHunks(multiFetched, segmentKeys),
+            hunks = _.orderBy(_.filter(multiHunkResults, h => !!h) as IHunk[], h => h.first);
         _.forEach(hunks, h => result.or(h));
         return result;
     }
@@ -124,7 +125,7 @@ export class Segmenta {
             send = this._redis.sendCommand as (cmd: any) => void, // work around invalid arg count for sendCommand
             cmd = new Command("mget", keys);
         send.call(this._redis, cmd);
-        return await cmd.promise;
+        return cmd.promise;
     }
 
     private _makeHunks(buffers: Buffer[], keys: string[]): IHunk[] {
@@ -140,70 +141,59 @@ export class Segmenta {
         const
             tokens = tokenize(query),
             pipeline = parse(tokens, this);
-        debug(`Execute pipeline for ${query}`);
+        debug(`Execute pipeline for ${ query }`);
         return await pipeline.exec();
     }
 
     public async query(qry: ISegmentQueryOptions | string): Promise<ISegmentResults> {
-        debug(`query start (${this._prefix}): `, qry);
+        debug(`query start (${ this._prefix }): `, qry);
         const
             options = sanitizeOptions(qry),
-            isRequery = isUUID(options.query);
-        if (isRequery) {
+            isReQuery = isUUID(options.query);
+        if (isReQuery) {
             const cached = lruCache.get(options.query);
             if (cached) {
-                const
-                    skip = options.skip || 0,
-                    take = options.take === undefined ? cached.total : options.take,
-                    slice = cached.values
-                        .filter((i: number) => (options.min === undefined || i >= options.min) &&
-                            (options.max === undefined || i <= options.max))
-                        .slice(skip, take + skip);
-                return {
-                    ids: slice,
-                    count: slice.length,
-                    skipped: options.skip || 0,
-                    take: options.take || 0,
-                    total: cached.total,
-                    resultSetId: options.query,
-                    paged: this._isPaged(options)
-                } as ISegmentResults;
+                return prepareCachedResult(options, cached);
             }
         }
-        const buffer = isRequery
+        const buffer = isReQuery
             ? await this._rehydrate(options.query)
             : await this.getBuffer(options.query);
         if (isNumber(buffer)) {
-            debug("query is count only...");
-            return {
-                ids: [],
-                total: buffer,
-                skipped: 0,
-                take: 0,
-                count: buffer,
-                paged: false
-            };
+            return prepareCountResult(buffer);
         }
+
+        return this._prepareNewResultAndCacheIfAppropriate(
+            isReQuery,
+            options,
+            buffer
+        );
+    }
+
+    private async _prepareNewResultAndCacheIfAppropriate(
+        isReQuery: boolean,
+        options: ISanitizedQueryOptions,
+        buffer: SparseBuffer
+    ) {
         const
-            paged = this._isPaged(options),
-            shouldSnapshot = !isRequery && paged,
-            resultSetId = shouldSnapshot ? uuid() : (isRequery ? options.query : undefined),
+            paged = expectsPaging(options),
+            shouldSnapshot = !isReQuery && paged,
+            resultSetId = shouldSnapshot ? uuid() : (isReQuery ? options.query : undefined),
             positionsResult = shouldSnapshot
                 ? await this._paginateLocal(buffer, options, resultSetId as string)
                 : buffer.getOnBitPositions(options.skip, options.take, options.min, options.max),
             total = positionsResult.total,
             ids = positionsResult.values,
-            count = ids.length,
-            result = {
-                ids,
-                count,
-                skipped: options.skip || 0,
-                take: options.take || 0,
-                total,
-                resultSetId,
-                paged
-            };
-        return result;
+            count = ids.length;
+        return {
+            ids,
+            count,
+            skipped: options.skip || 0,
+            take: options.take || 0,
+            total,
+            resultSetId,
+            paged
+        };
     }
 
     public async fetchStats(): Promise<ISegmentaStats> {
@@ -258,8 +248,8 @@ export class Segmenta {
             idx++;
         }
 
-        const numericPart = `${bytes.toFixed(2)}`.replace(/\.00$/, "");
-        return `${numericPart} ${this._suffixes[idx]}`;
+        const numericPart = `${ bytes.toFixed(2) }`.replace(/\.00$/, "");
+        return `${ numericPart } ${ this._suffixes[idx] }`;
     }
 
     private async _paginateLocal(
@@ -298,31 +288,23 @@ export class Segmenta {
         );
     }
 
-    private _isPaged(options: ISanitizedQueryOptions): boolean {
-        return options.skip !== undefined ||
-            options.take !== undefined ||
-            options.min !== undefined ||
-            options.max !== undefined ||
-            !!options.query.match(/(\sskip\s|\stake\s|\smin\s|\smax\s)/i);
-    }
-
     public async put(segmentId: string, operations: (IAddOperation | IDelOperation)[]): Promise<void> {
         await tryDo(() => this._tryPut(segmentId, operations));
     }
 
     public async add(segmentId: string, ids: number[]): Promise<void> {
-        const ops = ids.map(i => ({add: i}));
+        const ops = ids.map(i => ({ add: i }));
         await tryDo(() => this._tryPut(segmentId, ops));
     }
 
     public async del(segmentId: string, ids: number[]): Promise<void> {
-        const ops = ids.map(i => ({del: i}));
+        const ops = ids.map(i => ({ del: i }));
         await tryDo(() => this._tryPut(segmentId, ops));
     }
 
     public async list(): Promise<string[]> {
-        debug(`listing segments under ${this._prefix}`);
-        const indexKeys = await this._redis.keys(`${this._prefix}/*/index`);
+        debug(`listing segments under ${ this._prefix }`);
+        const indexKeys = await this._redis.keys(`${ this._prefix }/*/index`);
         return indexKeys.map(k => {
             const parts = k.split("/");
             return parts[parts.length - 2];
@@ -334,7 +316,7 @@ export class Segmenta {
             return;
         }
         lruCache.del(resultSetId || "");
-        debug(`disposing of resultset ${resultSetId}`);
+        debug(`disposing of resultset ${ resultSetId }`);
         await this._resultsetHydrator.dispose(resultSetId);
     }
 
@@ -343,12 +325,12 @@ export class Segmenta {
     }
 
     private async _dehydrate(id: string, data: SparseBuffer): Promise<void> {
-        debug(`stashing resultset ${id} for later...`);
+        debug(`stashing resultset ${ id } for later...`);
         await this._resultsetHydrator.dehydrate(id, data);
     }
 
     private async _rehydrate(resultSetId: string): Promise<SparseBuffer> {
-        debug(`rehydrating existing resultset: ${resultSetId}`);
+        debug(`rehydrating existing resultset: ${ resultSetId }`);
         const result = await this._resultsetHydrator.rehydrate(resultSetId);
         lruCache.set(resultSetId, result.getOnBitPositions()); // ensure it's back in the lru cache too
         return result;
@@ -388,38 +370,38 @@ export class Segmenta {
             }
             const segmentName = this._generateSegmentNameFor(id);
             if (segmentName !== lastSegmentName) {
-                cmds.push(`${baseKey}/${segmentName}`);
+                cmds.push(`${ baseKey }/${ segmentName }`);
                 lastSegmentName = segmentName;
             }
             const offset = id % this._bucketSize;
             cmds.push(offset, val);
             commands++;
         }
-        debug(`setting bits with ${commands} commands`);
+        debug(`setting bits with ${ commands } commands`);
         await (this._redis as any).setbits(cmds);
     }
 
     private async _ensureSegmentExists(segment: string) {
         const index = await this._fetchIndex(segment);
         if (index.length === 0) {
-            await this._tryPut(segment, [{del: 0}]);
+            await this._tryPut(segment, [{ del: 0 }]);
         }
     }
 
     private async _fetchIndex(segment: string): Promise<string[]> {
-        const indexKey = `${this._dataKeyForSegment(segment)}/index`;
+        const indexKey = `${ this._dataKeyForSegment(segment) }/index`;
         return await this._redis.sunion(indexKey);
     }
 
     private async _getSegmentKeys(...baseKeys: string[]): Promise<string[]> {
-        return await this._redis.sunion(...baseKeys.map(bk => `${bk}/index`)) as string[];
+        return await this._redis.sunion(...baseKeys.map(bk => `${ bk }/index`)) as string[];
     }
 
     private _generateSegmentNameFor(id: number): string {
         const
             lower = Math.floor(id / this._bucketSize) * this._bucketSize,
             upper = (lower + this._bucketSize - 1);
-        return `${lower}-${upper}`;
+        return `${ lower }-${ upper }`;
     }
 
     private _dataKeyForSegment(segment: string): string {
@@ -427,10 +409,18 @@ export class Segmenta {
     }
 }
 
+function expectsPaging(options: ISanitizedQueryOptions): boolean {
+    return options.skip !== undefined ||
+        options.take !== undefined ||
+        options.min !== undefined ||
+        options.max !== undefined ||
+        !!options.query.match(/(\sskip\s|\stake\s|\smin\s|\smax\s)/i);
+}
+
 function validateMaxOperationLength(ops: (IAddOperation | IDelOperation | number)[]): void {
     if (ops.length > MAX_OPERATIONS_PER_BATCH) {
         throw new Error([
-            `Cannot process more than ${MAX_OPERATIONS_PER_BATCH}`,
+            `Cannot process more than ${ MAX_OPERATIONS_PER_BATCH }`,
             `operations per batch for fear of redis error 'invalid multibulk length'`
         ].join(""));
     }
@@ -450,7 +440,7 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
 }
 
 function sanitizeOptions(opts: ISegmentQueryOptions | string): ISanitizedQueryOptions {
-    const options = (isString(opts) ? {query: opts} : opts) as ISanitizedQueryOptions;
+    const options = (isString(opts) ? { query: opts } : opts) as ISanitizedQueryOptions;
     if (!options.query) {
         throw new Error("No query defined");
     }
@@ -461,4 +451,40 @@ function looksLikeDSL(str: string): boolean {
     const parts = (str || "").split(" ");
     // assume dsl query if there are multiple words in the query string
     return parts.length > 1;
+}
+
+function prepareCachedResult(
+    options: ISanitizedQueryOptions,
+    cached: IPositionsResult
+) {
+    const
+        skip = options.skip || 0,
+        take = options.take === undefined ? cached.total : options.take,
+        slice = cached.values
+            .filter((i: number) => (options.min === undefined || i >= options.min) &&
+                (options.max === undefined || i <= options.max))
+            .slice(skip, take + skip);
+    return {
+        ids: slice,
+        count: slice.length,
+        skipped: options.skip || 0,
+        take: options.take || 0,
+        total: cached.total,
+        resultSetId: options.query,
+        paged: expectsPaging(options)
+    } as ISegmentResults;
+}
+
+function prepareCountResult(
+    total: number,
+) {
+    debug("query is count only...");
+    return {
+        ids: [],
+        total,
+        skipped: 0,
+        take: 0,
+        count: total,
+        paged: false
+    };
 }

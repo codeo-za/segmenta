@@ -59,6 +59,28 @@ describe(`tokenizer`, () => {
             expect(result).toEqual(expected);
         });
 
+        it(`should retrieve simplest RANDOM WHERE IN ('y')`, async () => {
+            // Arrange
+            const
+                code = "RANDOM WHERE IN ('y')",
+                expected = [{
+                    type: TokenTypes.random
+                }, {
+                    type: TokenTypes.include
+                }, {
+                    type: TokenTypes.oparens
+                }, {
+                    type: TokenTypes.identifier,
+                    value: "y"
+                }, {
+                    type: TokenTypes.cparens
+                }];
+            // Act
+            const result = simplify(tokenize(code));
+            // Assert
+            expect(result).toEqual(expected);
+        });
+
         [{
             name: "kebab-identifiers",
             eg: "x-y"
@@ -253,7 +275,7 @@ WHAT IN 'x'`)).toThrow("Syntax error (line 1, char 1): 'GET\nWHAT I...'");
             // Arrange
             // Act
             expect(() => tokenize("GET WHERE 'X'")).toThrow(
-                "Syntax error: 'GET WHERE' / 'COUNT WHERE' requires at least initial 'IN'"
+                "Syntax error: 'GET WHERE' / 'COUNT WHERE' / 'RANDOM WHERE' requires at least initial 'IN'"
             );
             // Assert
         });
@@ -261,7 +283,7 @@ WHAT IN 'x'`)).toThrow("Syntax error (line 1, char 1): 'GET\nWHAT I...'");
             // Arrange
             // Act
             expect(() => tokenize("GET WHERE 'X' OR IN 'Y'")).toThrow(
-                "Syntax error: 'GET WHERE' / 'COUNT WHERE' requires at least initial 'IN'"
+                "Syntax error: 'GET WHERE' / 'COUNT WHERE' / 'RANDOM WHERE' requires at least initial 'IN'"
             );
             // Assert
         });

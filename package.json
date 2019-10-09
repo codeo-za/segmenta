@@ -8,9 +8,9 @@
         "dist/**/*"
     ],
     "scripts": {
-        "test": "jest --reporters jest-spec-reporter",
+        "test": "jest --reporters jest-spec-reporter --no-cache",
         "lint": "tslint -p .",
-        "autotest": "jest --watch",
+        "autotest": "jest --watch --no-cache",
         "autolint": "nodemon -x \"run-s lint\" -w src -w tests -e ts",
         "build": "gulp build",
         "autobuild": "nodemon -x \"run-s build\" -w src -w tests -e ts",
@@ -79,14 +79,12 @@
     },
     "homepage": "https://github.com/codeo-za/segmenta#readme",
     "dependencies": {
-        "debug": "^3.1.0",
         "ioredis": "^3.2.2",
         "lodash": "^4.17.10",
         "lru-cache": "^4.1.3",
         "uuid": "^3.3.2"
     },
     "devDependencies": {
-        "@types/chai": "^4.1.4",
         "@types/debug": "0.0.30",
         "@types/faker": "^4.1.2",
         "@types/ioredis": "^3.2.11",
@@ -97,6 +95,7 @@
         "@types/node": "^10.5.1",
         "@types/uuid": "^3.4.3",
         "chai": "^4.1.2",
+        "debug": "^3.1.0",
         "expect-more-jest": "^1.0.1",
         "faker": "^4.1.0",
         "gulp": "^3.9.1",

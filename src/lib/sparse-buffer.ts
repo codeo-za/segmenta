@@ -1,8 +1,10 @@
-import { IHunk, Hunk } from "./hunk";
-import { isSparseBuffer, isHunk } from "./type-testers";
+import { Hunk, IHunk } from "./hunk";
+import { isHunk, isSparseBuffer } from "./type-testers";
 import generator from "./debug";
 
 const debug = generator(__filename);
+const MAX_HUNK_SIZE_TO_DOUBLE = 50000;
+const MIN_HUNK_SIZE_TO_INCREMENT = 1000;
 
 interface INumberArray extends Array<number> {
     count: number;
@@ -91,6 +93,8 @@ export class SparseBuffer implements ISparseBuffer {
     public minimum: number | undefined;
     public maximum: number | undefined;
 
+    public ordered: boolean = true;
+
     private _hunks: IHunk[] = [];
 
     constructor(bytes?: Buffer) {
@@ -133,7 +137,7 @@ export class SparseBuffer implements ISparseBuffer {
      *
      */
     public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): IPositionsResult {
-        debug(`calculating on-bit positions for virtual size: ${this.length}`);
+        debug(`calculating on-bit positions for virtual size: ${ this.length }`);
         const
             result = [] as any as INumberArray,
             scratch = new Array(8);
@@ -168,8 +172,10 @@ export class SparseBuffer implements ISparseBuffer {
         if (take === undefined || take < 1) {
             take = result.length;
         }
-        result.length = result.count;
-        (result as any).count = undefined;
+        trim(result);
+        if (!this.ordered) {
+            randomizeInPlace(result);
+        }
         if (skip === 0 && take >= result.length) {
             return {
                 values: result,
@@ -218,7 +224,7 @@ export class SparseBuffer implements ISparseBuffer {
         } else if (isHunk(source)) {
             return this._consumeBuffer(source.buffer, source.first, transform);
         }
-        throw new Error(`'${transform.name || "transform"}' supports types: Buffer, Hunk, SparseBuffer`);
+        throw new Error(`'${ transform.name || "transform" }' supports types: Buffer, Hunk, SparseBuffer`);
     }
 
     private _consumeBuffer(
@@ -319,7 +325,40 @@ export class SparseBuffer implements ISparseBuffer {
             undefined
         );
     }
+}
 
+function trim(result: INumberArray) {
+    result.length = result.count;
+    (result as any).count = undefined;
+}
+
+export function randomizeInPlace(numbers: number[]): void {
+    const top = Math.ceil(numbers.length / 2);
+    repeat(top, (i) => {
+        const
+            swap = numbers[i],
+            swapWith = randomNumber(0, numbers.length - 1);
+        numbers[i] = numbers[swapWith];
+        numbers[swapWith] = swap;
+    });
+}
+
+export type VoidVoidFunc = (() => void);
+export type OneArgVoidFunc<T> = ((arg: T) => void);
+export type RepeatableFunc = VoidVoidFunc | OneArgVoidFunc<number>;
+
+export function repeat(
+    howManyTimes: number,
+    activity: RepeatableFunc) {
+    for (let i = 0; i < howManyTimes; i++) {
+        activity.call(null, [ i ]);
+    }
+}
+
+function randomNumber(min: number, max: number) {
+    return Math.round(
+        min + (Math.random() * (max - min))
+    );
 }
 
 function hunkIntersectsOrCovers(
@@ -384,8 +423,7 @@ function addOnBitPositionsFor(
             }
         }
         if (result.count >= result.length) {
-            const add = result.length < 50000 ? (result.length < 1000 ? 1000 : result.length) : 50000;
-            result.length += add;
+            result.length += determineHunkIncrementFor(result.length);
         }
         return;
     }
@@ -397,6 +435,17 @@ function addOnBitPositionsFor(
     }).forEach((value) => {
         result[result.count++] = value;
     });
+}
+
+function determineHunkIncrementFor(
+    currentSize: number) {
+    return Math.min(
+        Math.max(
+            currentSize,
+            MIN_HUNK_SIZE_TO_INCREMENT
+        ),
+        MAX_HUNK_SIZE_TO_DOUBLE
+    );
 }
 
 export class SparseBufferWithPaging extends SparseBuffer {

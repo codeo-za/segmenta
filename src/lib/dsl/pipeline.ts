@@ -2,6 +2,7 @@ import { SparseBuffer, SparseBufferWithPaging } from "../sparse-buffer";
 import { Segmenta } from "../segmenta";
 import { isString, isSparseBuffer, isPipeline } from "../type-testers";
 import generator from "../debug";
+
 const debug = generator(__filename);
 
 export enum SegmentaPipelineOperations {
@@ -19,7 +20,8 @@ export enum SegmentaPipelineOperations {
 enum ExecOperations {
     none,
     get,
-    count
+    count,
+    random
 }
 
 interface ISegmentaPipelineOperation {
@@ -35,16 +37,17 @@ interface ISpecialOpsHandlers {
 }
 
 const NumericOpsHandlers: ISpecialOpsHandlers = {
-        [SegmentaPipelineOperations[SegmentaPipelineOperations.min]]:
-            (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.minimum = op.value,
-        [SegmentaPipelineOperations[SegmentaPipelineOperations.max]]:
-            (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.maximum = op.value,
-        [SegmentaPipelineOperations[SegmentaPipelineOperations.skip]]:
-            (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.skip = op.value,
-        [SegmentaPipelineOperations[SegmentaPipelineOperations.take]]:
-            (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.take = op.value,
-    }
-;
+    [SegmentaPipelineOperations[SegmentaPipelineOperations.min]]:
+        (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.minimum = op.value,
+    [SegmentaPipelineOperations[SegmentaPipelineOperations.max]]:
+        (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.maximum = op.value,
+    [SegmentaPipelineOperations[SegmentaPipelineOperations.skip]]:
+        (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.skip = op.value,
+    [SegmentaPipelineOperations[SegmentaPipelineOperations.take]]:
+        (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.take = op.value,
+};
+
+type OperationFunction = (pipeline: SegmentaPipeline) => Promise<SparseBufferWithPaging>;
 
 export class SegmentaPipeline {
     private readonly _parent: SegmentaPipeline | undefined;
@@ -52,6 +55,12 @@ export class SegmentaPipeline {
     private _execOperation: ExecOperations = ExecOperations.none;
     private _operations: ISegmentaPipelineOperation[] = [];
     public id: number;
+
+    private static operationLookup = {
+        [ExecOperations.get]: (pipeline: SegmentaPipeline) => pipeline._get(),
+        [ExecOperations.count]: (pipeline: SegmentaPipeline) => pipeline._count(),
+        [ExecOperations.random]: (pipeline: SegmentaPipeline) => pipeline._random()
+    };
 
     constructor(segmenta: Segmenta, parent?: SegmentaPipeline) {
         this._parent = parent;
@@ -71,7 +80,7 @@ export class SegmentaPipeline {
             case SegmentaPipelineOperations.notIn:
                 return this;
             default:
-                throw new Error(`Don't know how to "in" after "${SegmentaPipelineOperations[this._lastOp]}"`);
+                throw new Error(`Don't know how to "in" after "${ SegmentaPipelineOperations[this._lastOp] }"`);
         }
     }
 
@@ -79,7 +88,7 @@ export class SegmentaPipeline {
         if (this._lastOp === SegmentaPipelineOperations.none) {
             throw new Error("can't call segment() without a preceding operation");
         }
-        this._operations.push({op: this._lastOp, segment: id});
+        this._operations.push({ op: this._lastOp, segment: id });
         return this._setNoneOp();
     }
 
@@ -127,16 +136,16 @@ export class SegmentaPipeline {
     public int(str: string) {
         const value = parseInt(str, 10);
         if (isNaN(value)) {
-            throw new Error(`Invalid number value: ${str}`);
+            throw new Error(`Invalid number value: ${ str }`);
         }
-        this._operations.push({op: this._lastOp, value});
+        this._operations.push({ op: this._lastOp, value });
         return this._setNoneOp();
     }
 
     public startGroup(): SegmentaPipeline {
         if (this._lastOp === SegmentaPipelineOperations.none || this._lastOp === SegmentaPipelineOperations.notIn) {
             const next = new SegmentaPipeline(this._segmenta, this).asGet();
-            this._operations.push({op: this._lastOp, segment: next});
+            this._operations.push({ op: this._lastOp, segment: next });
             this._lastOp = SegmentaPipelineOperations.none;
             return next;
         }
@@ -156,9 +165,14 @@ export class SegmentaPipeline {
         if (this._execOperation === ExecOperations.none) {
             throw new Error("No exec operation defined");
         }
-        return this._execOperation === ExecOperations.get
-            ? this._get()
-            : this._count();
+        const operator = SegmentaPipeline.operationLookup[this._execOperation];
+        if (!operator) {
+            throw new Error(`No operator defined for exec operation ${ [ExecOperations[this._execOperation]] }`);
+        }
+        return operator(this);
+        // return this._execOperation === ExecOperations.get
+        //     ? this._get()
+        //     : this._count();
     }
 
     public asGet(): SegmentaPipeline {
@@ -166,9 +180,20 @@ export class SegmentaPipeline {
         return this;
     }
 
+    public asRandom(): SegmentaPipeline {
+        this._execOperation = ExecOperations.random;
+        return this;
+    }
+
     public asCount(): SegmentaPipeline {
         this._execOperation = ExecOperations.count;
         return this;
+    }
+
+    private async _random(): Promise<SparseBufferWithPaging> {
+        const result = await this._get();
+        result.ordered = false;
+        return result;
     }
 
     private async _get(): Promise<SparseBufferWithPaging> {
@@ -182,9 +207,9 @@ export class SegmentaPipeline {
             }
 
             if (!op.segment) {
-                throw new Error(`No segment on ${JSON.stringify({
+                throw new Error(`No segment on ${ JSON.stringify({
                     op: SegmentaPipelineOperations[op.op]
-                })}`);
+                }) }`);
             }
 
             if (isPipeline(op.segment)) {
@@ -201,7 +226,7 @@ export class SegmentaPipeline {
             }
 
             if (!isSparseBuffer(op.segment)) {
-                throw new Error(`segment not actualized: ${op.segment}`);
+                throw new Error(`segment not actualized: ${ op.segment }`);
             }
 
             switch (op.op) {
@@ -218,7 +243,7 @@ export class SegmentaPipeline {
                     result.or(op.segment);
                     break;
                 default:
-                    throw new Error(`Unknown SegmentaPipelineOperation: ${SegmentaPipelineOperations[op.op]}`);
+                    throw new Error(`Unknown SegmentaPipelineOperation: ${ SegmentaPipelineOperations[op.op] }`);
             }
         }
         return result;

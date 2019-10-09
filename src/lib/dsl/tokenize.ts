@@ -17,7 +17,8 @@ export enum TokenTypes {
     max,
     integer,
     skip,
-    take
+    take,
+    random
 }
 
 class Token {
@@ -60,10 +61,10 @@ const tokenTypes = [
     Token.for(
         // identifiers (segment names), allowing some non alpha-numeric chars & to be quoted
         TokenTypes.identifier,
-        /([']{1})\b[a-zA-Z0-9-_:]+\b([']{1})/),
+        /(['])\b[a-zA-Z0-9-_:]+\b(['])/),
     Token.for(
         TokenTypes.identifier,
-        /(["]{1})\b[a-zA-Z0-9-_:]+\b(["]{1})/),
+        /(["])\b[a-zA-Z0-9-_:]+\b(["])/),
 
     Token.for(TokenTypes.get, /\bGET\s+WHERE\b/i),            // get the resultset
     Token.for(TokenTypes.count, /\bCOUNT\s+WHERE\b/i),        // count the resultset only
@@ -78,7 +79,8 @@ const tokenTypes = [
     Token.for(TokenTypes.max, /\bMAX\b/i),
     Token.for(TokenTypes.skip, /\bSKIP\b/i),
     Token.for(TokenTypes.take, /\bTAKE\b/i),
-    Token.for(TokenTypes.integer, /\b[0-9]+\b/)
+    Token.for(TokenTypes.integer, /\b[0-9]+\b/),
+    Token.for(TokenTypes.random, /\bRANDOM\s+WHERE\b/i)
 ];
 
 function sanitizeIdentifier(str: string): string {
