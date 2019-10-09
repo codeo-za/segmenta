@@ -4,7 +4,7 @@ import { ISegmentaOptions, ISegmentResults } from "../../src/lib/interfaces";
 import faker from "faker";
 import "expect-more-jest";
 import { endTimer, startTimer, shouldShowTimes } from "../timer";
-import { randomizeInPlace, repeat, SparseBuffer } from "../../src/lib/sparse-buffer";
+import { shuffle, repeat, SparseBuffer } from "../../src/lib/sparse-buffer";
 import "../matchers";
 import { v4 as uuid } from "uuid";
 import { isUUID } from "../../src/lib/type-testers";
@@ -887,7 +887,7 @@ describe("Segmenta", () => {
                                 expected = clone(data);
                             expect(data).toEqual(expected);
                             // Act
-                            randomizeInPlace(data);
+                            shuffle(data);
                             // Assert
                             expect(data).not.toEqual(expected);
                             expect(data).toBeEquivalentTo(expected);

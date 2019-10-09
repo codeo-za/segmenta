@@ -174,7 +174,7 @@ export class SparseBuffer implements ISparseBuffer {
         }
         trim(result);
         if (!this.ordered) {
-            randomizeInPlace(result);
+            shuffle(result);
         }
         if (skip === 0 && take >= result.length) {
             return {
@@ -332,29 +332,22 @@ function trim(result: INumberArray) {
     (result as any).count = undefined;
 }
 
-export function randomizeInPlace(numbers: number[]): void {
-    // we will shuffle the first 3/4 items:
-    // -> if we shuffle the first half, half of that half will be shuffled back into
-    //      the first half
-    // -> so half of the second half doesn't receive any shuffling
-    // -> so we pick another half of the data to be included in the shuffling process
-    const top = Math.ceil(numbers.length * (3/4));
-    repeat(top, (i) => {
+export function shuffle(numbers: number[]): void {
+    // fisher-yates shuffle algorithm
+    for (let i = numbers.length - 1; i > 0; i--) {
         const
-            swap = numbers[i],
-            swapWith = randomNumber(0, numbers.length - 1);
-        numbers[i] = numbers[swapWith];
-        numbers[swapWith] = swap;
-    });
+            j = randomNumber(0, i),
+            swap = numbers[i];
+        numbers[i] = numbers[j];
+        numbers[j] = swap;
+    }
 }
 
-export type VoidVoidFunc = (() => void);
-export type OneArgVoidFunc<T> = ((arg: T) => void);
-export type RepeatableFunc = VoidVoidFunc | OneArgVoidFunc<number>;
+export type VoidFunc = ((...args: any[]) => void);
 
 export function repeat(
     howManyTimes: number,
-    activity: RepeatableFunc) {
+    activity: VoidFunc) {
     for (let i = 0; i < howManyTimes; i++) {
         activity.call(null, [ i ]);
     }
