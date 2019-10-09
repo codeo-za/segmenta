@@ -333,7 +333,12 @@ function trim(result: INumberArray) {
 }
 
 export function randomizeInPlace(numbers: number[]): void {
-    const top = Math.ceil(numbers.length / 2);
+    // we will shuffle the first 3/4 items:
+    // -> if we shuffle the first half, half of that half will be shuffled back into
+    //      the first half
+    // -> so half of the second half doesn't receive any shuffling
+    // -> so we pick another half of the data to be included in the shuffling process
+    const top = Math.ceil(numbers.length * (3/4));
     repeat(top, (i) => {
         const
             swap = numbers[i],
