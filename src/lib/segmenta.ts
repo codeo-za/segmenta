@@ -22,6 +22,7 @@ import { tokenize } from "./dsl/tokenize";
 import { parse } from "./dsl/parse";
 import generator from "./debug";
 import LRU from "lru-cache";
+import { Error } from "tslint/lib/error";
 
 const debug = generator(__filename);
 const Redis = require("ioredis");
@@ -439,30 +440,28 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
     }
 }
 
-const pagingProps: (keyof (ISanitizedQueryOptions))[] = [
-    "skip",
-    "take",
-    "min",
-    "max"
-];
+function sanitizePagingOptions(options: ISanitizedQueryOptions) {
+    if (options.skip === null) {
+        options.skip = undefined;
+    }
+    if (options.take === null) {
+        options.take = undefined;
+    }
+    if (options.min === null) {
+        options.min = undefined;
+    }
+    if (options.max === null) {
+        options.max = undefined;
+    }
+}
 
 function sanitizeOptions(opts: ISegmentQueryOptions | string): ISanitizedQueryOptions {
     const options = (isString(opts) ? { query: opts } : opts) as ISanitizedQueryOptions;
     if (!options.query) {
         throw new Error("No query defined");
     }
-    pagingProps.forEach(prop =>
-        makeUndefinedIfNull(options, prop)
-    );
+    sanitizePagingOptions(options);
     return options;
-}
-
-function makeUndefinedIfNull<T extends {[key: string]: any}>(
-    opts: T,
-    key: keyof (T)): void {
-    if (opts[key] === null) {
-        opts[key] = undefined;
-    }
 }
 
 function looksLikeDSL(str: string): boolean {
