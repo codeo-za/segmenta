@@ -1,11 +1,10 @@
+import "expect-more-jest";
+import "../matchers";
 import { Segmenta } from "../../src/lib/segmenta";
 import { ISegmentaOptions, ISegmentResults } from "../../src/lib/interfaces";
-
 import faker from "faker";
-import "expect-more-jest";
 import { endTimer, startTimer, shouldShowTimes } from "../timer";
-import { shuffle, repeat, SparseBuffer } from "../../src/lib/sparse-buffer";
-import "../matchers";
+import { SparseBuffer } from "../../src/lib/sparse-buffer";
 import { v4 as uuid } from "uuid";
 import { isUUID } from "../../src/lib/type-testers";
 import { KeyGenerator } from "../../src/lib/key-generator";
@@ -944,46 +943,6 @@ describe("Segmenta", () => {
                     }
                 });
 
-                describe(`randomizeInPlace`, () => {
-                    const
-                        minCount = 10,
-                        envValue = parseInt(process.env.RANDOMIZE_CYCLES || "", 10),
-                        envValueSucks = isNaN(envValue) || envValue < minCount,
-                        repeatCount = envValueSucks ? minCount : envValue;
-                    repeat(repeatCount, () => {
-                        it(`should always return the full set, re-ordered`, async () => {
-                            // Arrange
-                            const
-                                data = makeRandomArrayOfNumbers(),
-                                expected = clone(data);
-                            expect(data).toEqual(expected);
-                            // Act
-                            shuffle(data);
-                            // Assert
-                            expect(data).not.toEqual(expected);
-                            expect(data).toBeEquivalentTo(expected);
-                        });
-                    });
-
-                    function clone(numbers: number[]) {
-                        const result = [] as number[];
-                        result.length = numbers.length;
-                        repeat(result.length, i => result[i] = numbers[i]);
-                        return result;
-                    }
-
-                    function makeRandomArrayOfNumbers(): number[] {
-                        const
-                            items = faker.random.number({ min: 10, max: 1024 }),
-                            result = [] as number[];
-                        // allocate all the space once
-                        result.length = items;
-                        for (let i = 0; i < items; i++) {
-                            result[i] = faker.random.number();
-                        }
-                        return result;
-                    }
-                });
             });
 
             describe(`count`, () => {
@@ -1202,8 +1161,6 @@ describe("Segmenta", () => {
             expect(result.buckets).toEqual(2);
             expect(result.segments).toBeArray();
             expect(result.segments).toHaveLength(2);
-
-            console.log(JSON.stringify(result));
 
             const segmentData1 = result.segments.find(s => s.segment === segment1);
             if (segmentData1 === undefined) {

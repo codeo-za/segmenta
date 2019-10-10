@@ -457,9 +457,9 @@ function sanitizeOptions(opts: ISegmentQueryOptions | string): ISanitizedQueryOp
     return options;
 }
 
-function makeUndefinedIfNull(
-    opts: ISanitizedQueryOptions,
-    key: keyof (ISanitizedQueryOptions)): void {
+function makeUndefinedIfNull<T extends {[key: string]: any}>(
+    opts: T,
+    key: keyof (T)): void {
     if (opts[key] === null) {
         opts[key] = undefined;
     }

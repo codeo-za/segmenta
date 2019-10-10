@@ -1,6 +1,7 @@
 import { Hunk, IHunk } from "./hunk";
 import { isHunk, isSparseBuffer } from "./type-testers";
 import generator from "./debug";
+import { shuffleUsingFisherYatesMethod } from "./shuffle";
 
 const debug = generator(__filename);
 const MAX_HUNK_SIZE_TO_DOUBLE = 50000;
@@ -133,7 +134,7 @@ export class SparseBuffer implements ISparseBuffer {
     }
 
     /*
-     * Gets the indexes of bits which are "on" orIn the sparse buffer
+     * Gets the indexes of bits which are "on" or the sparse buffer
      *
      */
     public getOnBitPositions(skip?: number, take?: number, min?: number, max?: number): IPositionsResult {
@@ -174,7 +175,7 @@ export class SparseBuffer implements ISparseBuffer {
         }
         trim(result);
         if (!this.ordered) {
-            shuffle(result);
+            shuffleUsingFisherYatesMethod(result);
         }
         if (skip === 0 && take >= result.length) {
             return {
@@ -189,7 +190,7 @@ export class SparseBuffer implements ISparseBuffer {
     }
 
     /*
-     * Dumps out the values of each byte orIn the virtual address space as numbers (0-255)
+     * Dumps out the values of each byte or the virtual address space as numbers (0-255)
      */
     public dump(): number[] {
         const result = [];
@@ -287,14 +288,14 @@ export class SparseBuffer implements ISparseBuffer {
         if (insertBefore !== undefined) {
             this._hunks.splice(insertBefore, 0, hunk);
         } else {
-            // -> instead of pushing andIn sorting, we could splice()
+            // -> instead of pushing and sorting, we could splice()
             this._hunks.push(hunk);
             this._hunks = this._hunks.sort(
                 (a, b) => (a.first < b.first ? -1 : 1)
             );
         }
         // TODO: optimise this
-        // -> only re-calculate length if it's changed (ie, notIn an insert into empty space)
+        // -> only re-calculate length if it's changed (ie, not an insert into empty space)
         this._recalculateLength();
     }
 
@@ -330,33 +331,6 @@ export class SparseBuffer implements ISparseBuffer {
 function trim(result: INumberArray) {
     result.length = result.count;
     (result as any).count = undefined;
-}
-
-export function shuffle(numbers: number[]): void {
-    // fisher-yates shuffle algorithm
-    for (let i = numbers.length - 1; i > 0; i--) {
-        const
-            j = randomNumber(0, i),
-            swap = numbers[i];
-        numbers[i] = numbers[j];
-        numbers[j] = swap;
-    }
-}
-
-export type VoidFunc = ((...args: any[]) => void);
-
-export function repeat(
-    howManyTimes: number,
-    activity: VoidFunc) {
-    for (let i = 0; i < howManyTimes; i++) {
-        activity.call(null, [ i ]);
-    }
-}
-
-function randomNumber(min: number, max: number) {
-    return Math.round(
-        min + (Math.random() * (max - min))
-    );
 }
 
 function hunkIntersectsOrCovers(
