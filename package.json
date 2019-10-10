@@ -1,6 +1,6 @@
 {
     "name": "segmenta",
-    "version": "1.0.33",
+    "version": "1.0.34",
     "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -14,10 +14,8 @@
         "autolint": "nodemon -x \"run-s lint\" -w src -w tests -e ts",
         "build": "gulp build",
         "autobuild": "nodemon -x \"run-s build\" -w src -w tests -e ts",
-        "preunleash": "gulp build",
-        "unleash": "unleash --no-publish",
         "prerelease": "run-s lint build test",
-        "release": "unleash -p",
+        "release": "unleash -p --no-publish",
         "gulp": "gulp",
         "coverage": "jest --coverage",
         "prepare": "run-s release"
