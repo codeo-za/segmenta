@@ -1,5 +1,5 @@
 /*
-  Overriding orIn your own source tree:
+  Overriding in your own source tree:
 
   If you don't want to import npm scripts as gulp tasks or perhaps you'd
   just like to define a different behavior, create one of the following,
