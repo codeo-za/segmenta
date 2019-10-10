@@ -142,12 +142,19 @@ as performing operations with those sets. Currently supported are:
                         .values; // returns the numeric array for bit positions
         ```
         One may also query for counts only:
-        ```
+        ```typescript
         await segmenta.query("count where in 'x');
         ```
+        One may also query for results to come back in a random order:
+        ```typescript
+        await segmenta.query("random where in 'x');
+        ```
+        When paging is requested and a `resultSetId` is returned, requering against
+        that result-set will maintain the original randomized order.
+
         Query syntax is quite simple:
         ```
-        (GET | COUNT) WHERE IN('segment-id')
+        (GET | COUNT | RANDOM) WHERE IN('segment-id')
                     [(AND|OR|NOT) IN('other-segment')]...
                     [MIN {int}]
                     [MAX {int}]

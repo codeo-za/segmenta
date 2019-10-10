@@ -62,3 +62,6 @@ typings/
 .vscode
 dist
 .idea
+*.swp
+*.swo
+*.un~

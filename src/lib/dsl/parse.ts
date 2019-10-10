@@ -27,7 +27,8 @@ const tokenActions: ITokenActions = {
     [TokenTypes[TokenTypes.max]]: (p: SegmentaPipeline) => p.max(),
     [TokenTypes[TokenTypes.integer]]: (p: SegmentaPipeline, v: string) => p.int(v),
     [TokenTypes[TokenTypes.skip]]: (p: SegmentaPipeline) => p.skip(),
-    [TokenTypes[TokenTypes.take]]: (p: SegmentaPipeline) => p.take()
+    [TokenTypes[TokenTypes.take]]: (p: SegmentaPipeline) => p.take(),
+    [TokenTypes[TokenTypes.random]]: (p: SegmentaPipeline) => p.asRandom()
 };
 
 export function parse(tokens: IToken[], segmenta: Segmenta) {

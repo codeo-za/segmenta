@@ -29,7 +29,7 @@ export default function generator(context: string) {
             } else {
                 args.unshift(timestamp);
             }
-            debug.apply(null, args);
+            debug.apply(null, [args[0], ...args.slice(1)]);
         };
     return wrapper;
 }

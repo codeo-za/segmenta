@@ -15,10 +15,10 @@ function shouldNotBeEmpty(tokens: IToken[]) {
     }
 }
 
-function shouldStartWithGetOrCount(tokens: IToken[]): void {
+function shouldStartWithGetOrCountOrRandom(tokens: IToken[]): void {
     const
         first = tokens[0].type,
-        allowed = [TokenTypes.get, TokenTypes.count];
+        allowed = [TokenTypes.get, TokenTypes.count, TokenTypes.random];
     if (allowed.indexOf(first) === -1) {
         throw syntaxError("query must start with 'GET WHERE' or 'COUNT WHERE'");
     }
@@ -29,13 +29,18 @@ function shouldHaveInitialIn(tokens: IToken[]) {
         types = tokens.map(t => t.type),
         initialGet = types.indexOf(TokenTypes.get),
         initialCount = types.indexOf(TokenTypes.count),
-        initial = initialGet === -1 ? initialCount : initialGet,
+        initialRandom = types.indexOf(TokenTypes.random),
+        initial = [
+            initialGet,
+            initialCount,
+            initialRandom
+        ].find(o => o > -1),
         firstIn = types.indexOf(TokenTypes.include, initial),
         firstIdentifier = types.indexOf(TokenTypes.identifier),
         mustBeBefore = firstIdentifier === -1 ? types.length : firstIdentifier;
     if (tokens.length < 2 ||
         (firstIn === -1 || firstIn > mustBeBefore)) {
-        throw syntaxError("'GET WHERE' / 'COUNT WHERE' requires at least initial 'IN'");
+        throw syntaxError("'GET WHERE' / 'COUNT WHERE' / 'RANDOM WHERE' requires at least initial 'IN'");
     }
 }
 
@@ -87,7 +92,7 @@ export function validate(tokens: IToken[]) {
     //  defined at compile time
     const validators: TokenCollectionValidator[] = [
         shouldNotBeEmpty,
-        shouldStartWithGetOrCount,
+        shouldStartWithGetOrCountOrRandom,
         shouldNotStartNegated,
         shouldHaveInitialIn,
         shouldHaveSomeSegmentId,

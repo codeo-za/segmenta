@@ -1,15 +1,14 @@
-import { Segmenta } from "../../src/lib/segmenta";
-import { ISegmentaOptions } from "../../src/lib/interfaces";
-
-import faker from "faker";
 import "expect-more-jest";
+import "../matchers";
+import { Segmenta } from "../../src/lib/segmenta";
+import { ISegmentaOptions, ISegmentResults } from "../../src/lib/interfaces";
+import faker from "faker";
 import { endTimer, startTimer, shouldShowTimes } from "../timer";
 import { SparseBuffer } from "../../src/lib/sparse-buffer";
-import "../matchers";
-import {v4 as uuid } from "uuid";
+import { v4 as uuid } from "uuid";
 import { isUUID } from "../../src/lib/type-testers";
 import { KeyGenerator } from "../../src/lib/key-generator";
-import {Redis as IRedis } from "ioredis";
+import { Redis as IRedis } from "ioredis";
 import _ from "lodash";
 
 const Redis = require("ioredis");
@@ -26,7 +25,7 @@ describe("Segmenta", () => {
     async function clearTestKeys() {
         const redis = new Redis();
         for (const prefix of keyPrefixes) {
-            const keys = await redis.keys(`${prefix}/*`);
+            const keys = await redis.keys(`${ prefix }/*`);
             for (const key of keys) {
                 await redis.del(key);
             }
@@ -97,7 +96,7 @@ describe("Segmenta", () => {
     });
 
     async function getHunkKeys(redis: IRedis, baseKey: string): Promise<string[]> {
-        const all = await redis.keys(`${baseKey}/*`);
+        const all = await redis.keys(`${ baseKey }/*`);
         return all.filter(k => !!k.match(/.*\/[0-9]+[-][0-9]+$/));
     }
 
@@ -109,7 +108,7 @@ describe("Segmenta", () => {
                     sut = create(),
                     query = segmentId();
                 // Act
-                const result = await sut.query({query});
+                const result = await sut.query({ query });
                 // Assert
                 expect(result.ids).toBeDefined();
                 expect(result.ids).toBeEmptyArray();
@@ -123,7 +122,7 @@ describe("Segmenta", () => {
                     query = segmentId();
                 // Act
                 await sut.add(query, [2]);
-                const result = await sut.query({query});
+                const result = await sut.query({ query });
                 // Assert
                 expect(result.ids).toEqual([2]);
             });
@@ -134,7 +133,7 @@ describe("Segmenta", () => {
                     query = segmentId();
                 // Act
                 await sut.add(query, [1, 7]);
-                const result = await sut.query({query});
+                const result = await sut.query({ query });
                 // Assert
                 expect(result.ids).toEqual([1, 7]);
             });
@@ -147,7 +146,7 @@ describe("Segmenta", () => {
                     query = segmentId();
                 // Act
                 await sut1.add(query, ids);
-                const result = await sut2.query({query});
+                const result = await sut2.query({ query });
                 // Assert
                 expect(result.ids).toEqual(ids);
             });
@@ -159,7 +158,7 @@ describe("Segmenta", () => {
                     query = "defaultChunkSize";
                 // Act
                 await sut.add(query, values);
-                const result = await sut.query({query});
+                const result = await sut.query({ query });
                 const buffer = await sut.getBuffer(query) as SparseBuffer;
                 // Assert
                 expect(result.ids).toEqual(values);
@@ -179,7 +178,7 @@ describe("Segmenta", () => {
                     query = "smallSets";
                 // Act
                 await sut.add(query, source);
-                const result = await sut.query({query});
+                const result = await sut.query({ query });
                 // Assert
                 expect(result.ids).toEqual(source);
             });
@@ -214,7 +213,7 @@ describe("Segmenta", () => {
                     const
                         sut = create(),
                         query = "large-speed-test",
-                        range5 = {min: 1, max: 2},
+                        range5 = { min: 1, max: 2 },
                         accept = () => faker.random.number(range5) === 1,
                         label0 = "generating +- 1 000 000 ids";
                     startTimer(label0);
@@ -224,7 +223,7 @@ describe("Segmenta", () => {
                         source3 = createIdSource(3000000, 4000000, accept),
                         source = source1.concat(source2).concat(source3),
                         expectedCount = source1.length + source2.length + source3.length,
-                        label1 = `populating ${expectedCount} ids`,
+                        label1 = `populating ${ expectedCount } ids`,
                         label2 = `retrieving ids`;
                     endTimer(label0);
                     // Act
@@ -236,7 +235,7 @@ describe("Segmenta", () => {
                     // await sut.add(segment, copy);
                     endTimer(label1);
                     startTimer(label2);
-                    const result = await sut.query({query});
+                    const result = await sut.query({ query });
                     endTimer(label2);
                     // Assert
 
@@ -245,7 +244,7 @@ describe("Segmenta", () => {
                 });
 
             });
-            describe(`snapshot resultsets`, () => {
+            describe(`snapshot result-sets`, () => {
                 it(`should recognise a uuid`, () => {
                     // Arrange
                     const id = uuid();
@@ -256,7 +255,7 @@ describe("Segmenta", () => {
                 });
                 it(`should not get confused about a segment with a uuid in the name`, async () => {
                     // Arrange
-                    const query = `get where in '${uuid()}'`;
+                    const query = `get where in '${ uuid() }'`;
                     // Act
                     const result = isUUID(query);
                     // Assert
@@ -271,15 +270,15 @@ describe("Segmenta", () => {
                         expected = [1, 3];
                     await sut1.add(id, expected);
                     // Act
-                    const result1 = await sut1.query({query: id, skip: 1});
+                    const result1 = await sut1.query({ query: id, skip: 1 });
                     await sut1.add(id, [5]);
-                    const result2 = await sut2.query({query: result1.resultSetId});
+                    const result2 = await sut2.query({ query: result1.resultSetId });
                     // Assert
                     expect(result1.ids).toEqual([3]);
                     expect(result2.ids).toEqual(expected);
                 });
 
-                it(`should requry with skip and take correctly`, async () => {
+                it(`should re-query with skip and take correctly`, async () => {
                     // Arrange
                     const
                         sut = create(),
@@ -288,7 +287,7 @@ describe("Segmenta", () => {
                         expected = [3];
                     await sut.add(id, all);
                     // Act
-                    const first = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    const first = await sut.query(`get where in "${ id }" skip 0 take 1`);
                     const second = await sut.query({
                         query: first.resultSetId,
                         skip: 2,
@@ -298,7 +297,7 @@ describe("Segmenta", () => {
                     expect(second.ids).toEqual(expected);
                 });
 
-                it(`should requery with the min and max correctly`, async () => {
+                it(`should re-query with the min and max correctly`, async () => {
                     // Arrange
                     const
                         sut = create(),
@@ -307,7 +306,7 @@ describe("Segmenta", () => {
                         expected = [3];
                     await sut.add(id, all);
                     // Act
-                    const first = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    const first = await sut.query(`get where in "${ id }" skip 0 take 1`);
                     const second = await sut.query({
                         query: first.resultSetId,
                         min: 3,
@@ -317,7 +316,7 @@ describe("Segmenta", () => {
                     expect(second.ids).toEqual(expected);
                 });
 
-                it(`should requery with the min, max, skip and take correctly`, async () => {
+                it(`should re-query with the min, max, skip and take correctly`, async () => {
                     // Arrange
                     const
                         sut = create(),
@@ -326,7 +325,7 @@ describe("Segmenta", () => {
                         expected = [3];
                     await sut.add(id, all);
                     // Act
-                    const first = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    const first = await sut.query(`get where in "${ id }" skip 0 take 1`);
                     const second = await sut.query({
                         query: first.resultSetId,
                         min: 2,
@@ -337,6 +336,7 @@ describe("Segmenta", () => {
                     // Assert
                     expect(second.ids).toEqual(expected);
                 });
+
                 it(`should snapshot the result when the result page-size is < total`, async () => {
                     // Arrange
                     const
@@ -347,9 +347,9 @@ describe("Segmenta", () => {
                         addData = [10, 12];
                     await sut1.add(id, data);
                     // Act
-                    const result1 = await sut1.query({query: id, take: 2});
+                    const result1 = await sut1.query({ query: id, take: 2 });
                     await sut1.add(id, addData);
-                    const result2 = await sut2.query({query: result1.resultSetId});
+                    const result2 = await sut2.query({ query: result1.resultSetId });
                     // Assert
                     expect(result1.ids).toEqual([1, 3]);
                     expect(result2.ids).toEqual(data);
@@ -358,15 +358,15 @@ describe("Segmenta", () => {
                 it(`should expire the snapshot based on provided ttl`, async () => {
                     // Arrange
                     const
-                        sut = create({resultsTTL: 1}),
+                        sut = create({ resultsTTL: 1 }),
                         id = segmentId();
                     await sut.add(id, [3, 5]);
-                    const originalResults = await sut.query({query: id, skip: 1});
+                    const originalResults = await sut.query({ query: id, skip: 1 });
                     sut.clearLRUCache();
                     await sleep(1100);
                     // Act
-                    await expect(sut.query({query: originalResults.resultSetId})).rejects.toThrow(
-                        `result set ${originalResults.resultSetId} not found (expired perhaps?)`
+                    await expect(sut.query({ query: originalResults.resultSetId })).rejects.toThrow(
+                        `result set ${ originalResults.resultSetId } not found (expired perhaps?)`
                     );
                     // Assert
                 });
@@ -378,9 +378,9 @@ describe("Segmenta", () => {
                         id = segmentId();
                     await sut.add(id, [4, 7]);
                     // Act
-                    const results1 = await sut.query({query: id, skip: 0, take: 123});
-                    const results2 = await sut.query({query: results1.resultSetId});
-                    const results3 = await sut.query({query: results1.resultSetId, skip: 0, take: 42});
+                    const results1 = await sut.query({ query: id, skip: 0, take: 123 });
+                    const results2 = await sut.query({ query: results1.resultSetId });
+                    const results3 = await sut.query({ query: results1.resultSetId, skip: 0, take: 42 });
                     expect(results2.ids).toEqual(results1.ids);
                     expect(results1.skipped).toEqual(0);
                     expect(results1.take).toEqual(123);
@@ -388,8 +388,8 @@ describe("Segmenta", () => {
                     expect(results2.resultSetId).toEqual(results1.resultSetId);
                     expect(results3.resultSetId).toEqual(results1.resultSetId);
                     await sut.dispose(results1.resultSetId);
-                    await expect(sut.query({query: results1.resultSetId}))
-                        .rejects.toThrow(`result set ${results1.resultSetId} not found (expired perhaps?)`);
+                    await expect(sut.query({ query: results1.resultSetId }))
+                        .rejects.toThrow(`result set ${ results1.resultSetId } not found (expired perhaps?)`);
                     // Assert
                 });
 
@@ -404,11 +404,11 @@ describe("Segmenta", () => {
                     await clearTestKeys(); // ensure that there are no left-over snapshots
                     await sut.add(id, daBirthday);
                     // Act
-                    const result = await sut.query({query: id});
+                    const result = await sut.query({ query: id });
                     expect(result.ids).toBeEquivalentTo(daBirthday);
                     expect(result.paged).toBeFalse();
                     expect(result.resultSetId).not.toBeDefined();
-                    const keys = await redis.keys(`${sut.prefix}/results/*`);
+                    const keys = await redis.keys(`${ sut.prefix }/results/*`);
                     expect(keys).toBeEmptyArray();
                     // Assert
                 });
@@ -424,14 +424,14 @@ describe("Segmenta", () => {
                     expect(result).toEqual(oneDay);
                 });
 
-                it(`should throw if the resultset is not found by id`, async () => {
+                it(`should throw if the result-set is not found by id`, async () => {
                     // Arrange
                     const
                         sut = create(),
                         id = uuid();
                     // Act
-                    await expect(sut.query({query: id}))
-                        .rejects.toThrow(`result set ${id} not found (expired perhaps?)`);
+                    await expect(sut.query({ query: id }))
+                        .rejects.toThrow(`result set ${ id } not found (expired perhaps?)`);
                     // Assert
                 });
 
@@ -466,7 +466,7 @@ describe("Segmenta", () => {
                         expected = [5, 7, 9];
                     await sut.add(id, all);
                     // Act
-                    const result = await sut.query(`get where in '${id}' min ${min} max ${max}`);
+                    const result = await sut.query(`get where in '${ id }' min ${ min } max ${ max }`);
                     // Assert
                     expect(result.ids).toEqual(expected);
                 });
@@ -481,12 +481,83 @@ describe("Segmenta", () => {
                         all = [1, 2, 3, 4, 5];
                     await sut.add(id, all);
                     // Act
-                    const result = await sut.query(`get where in "${id}" skip 0 take 1`);
+                    const result = await sut.query(`get where in "${ id }" skip 0 take 1`);
                     // Assert
                     expect(result.ids).toEqual([1]);
                     expect(result.paged).toBeTrue();
                     expect(result.count).toEqual(1);
                     expect(result.total).toEqual(all.length);
+                });
+
+                const missingValues = [null, undefined];
+                missingValues.forEach(missing => {
+                    it(`should not store paged results when skip is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).skip = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+
+                    it(`should not store paged results when take is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).take = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+
+                    it(`should not store paged results when min is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).min = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+
+                    it(`should not store paged results when max is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).max = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
                 });
             });
 
@@ -505,7 +576,7 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(id, data);
                     // Act
-                    const result = await sut.query({query: "GET WHERE IN('x')"});
+                    const result = await sut.query({ query: "GET WHERE IN('x')" });
                     // Assert
                     expect(result.ids).toEqual(data);
                 });
@@ -521,7 +592,7 @@ describe("Segmenta", () => {
                     await sut.add(id1, data1);
                     await sut.add(id2, data2);
                     // Act
-                    const result = await sut.query({query: "GET WHERE IN('x') AND IN('y')"});
+                    const result = await sut.query({ query: "GET WHERE IN('x') AND IN('y')" });
                     // Assert
                     expect(result.ids).toEqual(expected);
                 });
@@ -530,7 +601,7 @@ describe("Segmenta", () => {
                     // Arrange
                     const sut = create();
                     // Act
-                    await expect(sut.query({query: "select * from 'moo-cows'"})).rejects.toThrow(
+                    await expect(sut.query({ query: "select * from 'moo-cows'" })).rejects.toThrow(
                         /syntax error/i
                     );
                     // Assert
@@ -704,10 +775,11 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    const result = await sut.query(`get where in '${segment}' skip 1 take 2`);
+                    const result = await sut.query(`get where in '${ segment }' skip 1 take 2`);
                     // Assert
                     expect(result.ids).toEqual([2, 3]);
                 });
+
                 it(`should prefer skip and take from query options`, async () => {
                     // Arrange
                     const
@@ -717,7 +789,7 @@ describe("Segmenta", () => {
                     await sut.add(segment, data);
                     // Act
                     const result = await sut.query({
-                        query: `get where in '${segment}' skip 0 take 1000`,
+                        query: `get where in '${ segment }' skip 0 take 1000`,
                         skip: 1,
                         take: 2
                     });
@@ -733,7 +805,7 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    const result = await sut.query(`get where in '${segment}' min 5 take 2`);
+                    const result = await sut.query(`get where in '${ segment }' min 5 take 2`);
                     // Assert
                     expect(result.ids).toEqual([5, 7]);
                 });
@@ -746,7 +818,7 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    const result = await sut.query({query: `get where in '${segment}'`, min: 4, max: 6});
+                    const result = await sut.query({ query: `get where in '${ segment }'`, min: 4, max: 6 });
                     // Assert
                     expect(result.ids).toEqual([4, 5, 6]);
                 });
@@ -759,10 +831,118 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    const result = await sut.query({query: `get where in '${segment}' min 0 max 1000`, min: 4, max: 6});
+                    const result = await sut.query({
+                        query: `get where in '${ segment }' min 0 max 1000`,
+                        min: 4,
+                        max: 6
+                    });
                     // Assert
                     expect(result.ids).toEqual([4, 5, 6]);
                 });
+
+                it(`should not allow doubly-quoted identifiers (')`, async () => {
+                    // Arrange
+                    const
+                        data = [2, 4, 5, 6, 8],
+                        segment = segmentId(),
+                        sut = create();
+                    await sut.add(segment, data);
+                    // Act
+                    await expect(sut.query({ query: `get where in ''${ segment }''` }))
+                        .rejects.toThrow(/^Syntax error/);
+                    // Assert
+                });
+
+                it(`should not allow doubly-quoted identifiers (")`, async () => {
+                    // Arrange
+                    const
+                        data = [2, 4, 5, 6, 8],
+                        segment = segmentId(),
+                        sut = create();
+                    await sut.add(segment, data);
+                    // Act
+                    await expect(sut.query({ query: `get where in ""${ segment }""` }))
+                        .rejects.toThrow(/^Syntax error/);
+                    // Assert
+                });
+
+                describe(`RANDOM`, () => {
+                    it(`should return items from single segment in random order`, async () => {
+                        // Arrange
+                        const
+                            data = [1, 3, 7, 9, 15, 17, 23, 30, 71],
+                            segment = segmentId(),
+                            qry = { query: `random where in '${ segment }'` },
+                            sut = create();
+                        await sut.add(segment, data);
+                        // Act
+                        const results = [
+                            await sut.query(qry),
+                            await sut.query(qry),
+                            await sut.query(qry),
+                            await sut.query(qry)
+                        ].map(r => r.ids);
+                        // Assert
+                        // all should be equivalent
+                        results.forEach(
+                            result => expect(result).toBeEquivalentTo(data)
+                        );
+                        // at least 2 should not be equal
+                        const identicalCount = results.map(result =>
+                            areIdentical(result, data)
+                        ).reduce((acc, cur) => acc + (cur ? 1 : 0), 0);
+                        expect(identicalCount)
+                            .toBeLessThan(3);
+                    });
+
+                    it(`should have repeatable read on random result-sets`, async () => {
+                        // Arrange
+                        const
+                            data = [1, 3, 7, 9, 15, 17, 23, 30, 71],
+                            segment = segmentId(),
+                            sut = create();
+                        await sut.add(segment, data);
+                        const initialResult = await retrieveDefinitelyRandomizedResult(
+                            sut,
+                            segment,
+                            data
+                        );
+                        // Act
+                        const newResult = await sut.query({
+                            query: initialResult.resultSetId
+                        });
+                        // Assert
+                        expect(newResult.ids).toEqual(initialResult.ids);
+                        expect(newResult.ids).toBeEquivalentTo(data);
+                        expect(newResult.ids).not.toEqual(data);
+                    });
+
+                    async function retrieveDefinitelyRandomizedResult(
+                        segmenta: Segmenta,
+                        segment: string,
+                        rawData: number[]): Promise<ISegmentResults> {
+                        let result: ISegmentResults;
+                        do {
+                            result = await segmenta.query({
+                                query: `random where in '${ segment }' skip 0 take 1000`
+                            });
+                        } while (areIdentical(rawData, result.ids));
+                        return result;
+                    }
+
+                    function areIdentical(
+                        array1: number[],
+                        array2: number[]) {
+                        if (!array1 || !array2) {
+                            throw new Error(`one or more inputs were null or undefined`);
+                        }
+                        return array1.length === array2.length &&
+                            array1.reduce((acc, cur, idx) =>
+                                acc && cur === array2[idx]
+                                , true);
+                    }
+                });
+
             });
 
             describe(`count`, () => {
@@ -772,7 +952,7 @@ describe("Segmenta", () => {
                         segment = segmentId(),
                         sut = create();
                     // Act
-                    const result = await sut.query(`count where in '${segment}'`);
+                    const result = await sut.query(`count where in '${ segment }'`);
                     // Assert
                     expect(result.ids).toBeEmptyArray();
                     expect(result.total).toEqual(0);
@@ -785,7 +965,7 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    const result = await sut.query(`count where in '${segment}'`);
+                    const result = await sut.query(`count where in '${ segment }'`);
                     // Assert
                     expect(result.ids).toBeEmptyArray();
                     expect(result.total).toEqual(data.length);
@@ -802,7 +982,7 @@ describe("Segmenta", () => {
                     await sut.add(segment1, data1);
                     await sut.add(segment2, data2);
                     // Act
-                    const result = await sut.query(`count where in '${segment1}' and not in '${segment2}'`);
+                    const result = await sut.query(`count where in '${ segment1 }' and not in '${ segment2 }'`);
                     // Assert
                     expect(result.ids).toBeEmptyArray();
                     expect(result.total).toEqual(expected);
@@ -814,7 +994,7 @@ describe("Segmenta", () => {
                     // Arrange
                     const
                         segmentsPrefix = "list-1",
-                        sut = create({segmentsPrefix});
+                        sut = create({ segmentsPrefix });
                     // Act
                     const result = await sut.list();
                     // Assert
@@ -825,7 +1005,7 @@ describe("Segmenta", () => {
                     const
                         segmentsPrefix = "list-2",
                         segment = segmentId(),
-                        sut = create({segmentsPrefix});
+                        sut = create({ segmentsPrefix });
                     await sut.add(segment, [1, 2, 3]);
                     // Act
                     const result = await sut.list();
@@ -838,8 +1018,8 @@ describe("Segmenta", () => {
                         segmentsPrefix = "list-3",
                         segment1 = segmentId(),
                         segment2 = segmentId(),
-                        creator = create({segmentsPrefix}),
-                        sut = create({segmentsPrefix});
+                        creator = create({ segmentsPrefix }),
+                        sut = create({ segmentsPrefix });
                     await creator.add(segment1, [5, 6, 7]);
                     await creator.add(segment2, []);
                     // Act
@@ -871,15 +1051,15 @@ describe("Segmenta", () => {
                 query = segmentId(),
                 sut = create(),
                 operations = [
-                    {add: 2},
-                    {add: 3},
-                    {del: 4},
+                    { add: 2 },
+                    { add: 3 },
+                    { del: 4 },
                 ],
                 expected = [2, 3];
             await sut.add(query, [4]);
             // Act
             await sut.put(query, operations);
-            const result = await sut.query({query});
+            const result = await sut.query({ query });
             // Assert
             expect(result.ids).toBeEquivalentTo(expected);
         });
@@ -889,18 +1069,18 @@ describe("Segmenta", () => {
             const
                 segment = segmentId(),
                 commands = [
-                    {add: 1},
-                    {add: 3},
-                    {add: 9},
-                    {del: 1},
-                    {add: 12},
-                    {del: 3}
+                    { add: 1 },
+                    { add: 3 },
+                    { add: 9 },
+                    { del: 1 },
+                    { add: 12 },
+                    { del: 3 }
                 ],
                 expected = [9, 12],
                 sut1 = create();
             // Act
             await sut1.put(segment, commands);
-            const result = await sut1.query({query: segment});
+            const result = await sut1.query({ query: segment });
             // Assert
             expect(result.ids).toEqual(expected);
         });
@@ -913,7 +1093,7 @@ describe("Segmenta", () => {
             const
                 segment = segmentId(),
                 commands = [
-                    {add: 1, del: 1}
+                    { add: 1, del: 1 }
                 ],
                 sut = create();
             // Act
@@ -922,8 +1102,8 @@ describe("Segmenta", () => {
         });
     });
 
-    xdescribe(`stats`, () => {
-        // WIP: this is not ready for prime-time yet
+    describe(`stats`, () => {
+        // this is experimental, but the tests pass, so far
         beforeEach(async () => {
             await clearTestKeys();
         });
@@ -947,8 +1127,8 @@ describe("Segmenta", () => {
             const
                 bucketSize = 8,
                 segment = segmentId(),
-                sut = create({bucketSize});
-            await sut.put(segment, [{add: 1}]);
+                sut = create({ bucketSize });
+            await sut.put(segment, [{ add: 1 }]);
             // Act
             const result = await sut.fetchStats();
             // Assert
@@ -970,9 +1150,9 @@ describe("Segmenta", () => {
                 bucketSize = 8,
                 segment1 = segmentId(),
                 segment2 = segmentId(),
-                sut = create({bucketSize});
-            await sut.put(segment1, [{add: 1}]);
-            await sut.put(segment2, [{add: 12}]);
+                sut = create({ bucketSize });
+            await sut.put(segment1, [{ add: 1 }]);
+            await sut.put(segment2, [{ add: 12 }]);
             // Act
             const result = await sut.fetchStats();
             // Assert
@@ -982,15 +1162,19 @@ describe("Segmenta", () => {
             expect(result.segments).toBeArray();
             expect(result.segments).toHaveLength(2);
 
-            console.log(JSON.stringify(result));
-
-            const segmentData1 = result.segments[0];
+            const segmentData1 = result.segments.find(s => s.segment === segment1);
+            if (segmentData1 === undefined) {
+                throw new Error(`Can't find segment data for '${ segment1 }'`);
+            }
             expect(segmentData1.bytes).toEqual(1);
             expect(segmentData1.size).toEqual("1 b");
             expect(segmentData1.buckets).toEqual(1);
             expect(segmentData1.segment).toEqual(segment1);
 
-            const segmentData2 = result.segments[1];
+            const segmentData2 = result.segments.find(s => s.segment === segment2);
+            if (segmentData2 === undefined) {
+                throw new Error(`Can't find segment data for '${ segment2 }'`);
+            }
             expect(segmentData2.bytes).toEqual(1);
             expect(segmentData2.size).toEqual("1 b");
             expect(segmentData2.buckets).toEqual(1);
@@ -1002,8 +1186,8 @@ describe("Segmenta", () => {
             const
                 bucketSize = 8,
                 segment1 = segmentId(),
-                sut = create({bucketSize});
-            await sut.put(segment1, [{add: 1}, {add: 5}]);
+                sut = create({ bucketSize });
+            await sut.put(segment1, [{ add: 1 }, { add: 5 }]);
             // Act
             const result = await sut.fetchStats();
             // Assert
@@ -1026,8 +1210,8 @@ describe("Segmenta", () => {
             const
                 bucketSize = 8,
                 segment1 = segmentId(),
-                sut = create({bucketSize});
-            await sut.put(segment1, [{add: 1}, {add: 32}]);
+                sut = create({ bucketSize });
+            await sut.put(segment1, [{ add: 1 }, { add: 32 }]);
             // Act
             const result = await sut.fetchStats();
             // Assert
@@ -1056,4 +1240,5 @@ describe("Segmenta", () => {
         }
         return result;
     }
-});
+})
+;

@@ -40,16 +40,20 @@ export function isSparseBuffer(obj: any): obj is ISparseBuffer {
         isFunction(obj.dump) &&
         isFunction(obj.at) &&
         Array.isArray(obj.hunks) &&
-        (obj.hunks as IHunk[]).reduce((acc, cur) => acc && isHunk(cur), true);
+        (obj.hunks as IHunk[]).reduce(
+            (acc: boolean, cur: IHunk) => acc && isHunk(cur),
+            true
+        );
 }
 
-export function isHunk(obj: any): obj is IHunk {
+export function isHunk<T extends IHunk>(obj: T): boolean {
     if (obj instanceof Hunk) {
         return true;
     }
+    // noinspection SuspiciousTypeOfGuard
     return obj.buffer &&
         obj.buffer instanceof Buffer &&
-        types.isNumberObject(obj.first === "number") &&
+        types.isNumberObject(obj.first) &&
         types.isNumberObject(obj.last) &&
         types.isNumberObject(obj.length) &&
         isFunction(obj.set) &&
