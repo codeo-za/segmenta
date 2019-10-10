@@ -1,6 +1,6 @@
 {
     "name": "segmenta",
-    "version": "1.0.32",
+    "version": "1.0.33",
     "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,11 +15,12 @@
         "build": "gulp build",
         "autobuild": "nodemon -x \"run-s build\" -w src -w tests -e ts",
         "preunleash": "gulp build",
-        "unleash": "unleash",
+        "unleash": "unleash --no-publish",
         "prerelease": "run-s lint build test",
         "release": "unleash -p",
         "gulp": "gulp",
-        "coverage": "jest --coverage"
+        "coverage": "jest --coverage",
+        "prepare": "run-s release"
     },
     "jest": {
         "transform": {
@@ -95,10 +96,11 @@
         "@types/node": "^10.5.1",
         "@types/uuid": "^3.4.3",
         "chai": "^4.1.2",
+        "chalk": "^2.4.2",
         "debug": "^3.1.0",
         "expect-more-jest": "^1.0.1",
         "faker": "^4.1.0",
-        "gulp": "^3.9.1",
+        "gulp": "^4.0.2",
         "gulp-help": "^1.6.1",
         "gulp-npm-run": "0.0.3",
         "gulp-typescript": "^4.0.2",
@@ -113,6 +115,7 @@
         "tslint": "^5.10.0",
         "tslint-consistent-codestyle": "^1.13.2",
         "typescript": "^2.9.2",
+        "undertaker-forward-reference": "^1.0.2",
         "unleash": "^2.0.1"
     }
 }
