@@ -1,9 +1,6 @@
 import { SparseBuffer, SparseBufferWithPaging } from "../sparse-buffer";
 import { Segmenta } from "../segmenta";
 import { isString, isSparseBuffer, isPipeline } from "../type-testers";
-import generator from "../debug";
-
-const debug = generator(__filename);
 
 export enum SegmentaPipelineOperations {
     none,
@@ -46,8 +43,6 @@ const NumericOpsHandlers: ISpecialOpsHandlers = {
     [SegmentaPipelineOperations[SegmentaPipelineOperations.take]]:
         (r: SparseBufferWithPaging, op: ISegmentaPipelineOperation) => r.take = op.value,
 };
-
-type OperationFunction = (pipeline: SegmentaPipeline) => Promise<SparseBufferWithPaging>;
 
 export class SegmentaPipeline {
     private readonly _parent: SegmentaPipeline | undefined;
@@ -170,9 +165,6 @@ export class SegmentaPipeline {
             throw new Error(`No operator defined for exec operation ${ [ExecOperations[this._execOperation]] }`);
         }
         return operator(this);
-        // return this._execOperation === ExecOperations.get
-        //     ? this._get()
-        //     : this._count();
     }
 
     public asGet(): SegmentaPipeline {
