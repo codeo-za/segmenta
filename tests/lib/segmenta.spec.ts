@@ -489,6 +489,77 @@ describe("Segmenta", () => {
                     expect(result.count).toEqual(1);
                     expect(result.total).toEqual(all.length);
                 });
+
+                const missingValues = [null, undefined];
+                missingValues.forEach(missing => {
+                    it(`should not store paged results when skip is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).skip = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+
+                    it(`should not store paged results when take is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).take = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+
+                    it(`should not store paged results when min is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).min = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+
+                    it(`should not store paged results when max is ${ missing }`, async () => {
+                        // Arrange
+                        const
+                            sut = create(),
+                            id = segmentId(),
+                            all = [1, 2, 3, 4, 5];
+                        await sut.add(id, all);
+                        const qry = {
+                            query: `get where in "${ id }"`
+                        };
+                        (qry as any).max = missing;
+                        // Act
+                        const result = await sut.query(qry);
+                        // Assert
+                        expect(result.resultSetId).not.toExist();
+                    });
+                });
             });
 
             describe(`DSL query`, () => {
@@ -778,7 +849,7 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    await expect(sut.query({ query: `get where in ''${segment}''` }))
+                    await expect(sut.query({ query: `get where in ''${ segment }''` }))
                         .rejects.toThrow(/^Syntax error/);
                     // Assert
                 });
@@ -791,7 +862,7 @@ describe("Segmenta", () => {
                         sut = create();
                     await sut.add(segment, data);
                     // Act
-                    await expect(sut.query({ query: `get where in ""${segment}""` }))
+                    await expect(sut.query({ query: `get where in ""${ segment }""` }))
                         .rejects.toThrow(/^Syntax error/);
                     // Assert
                 });
@@ -1136,7 +1207,7 @@ describe("Segmenta", () => {
 
             const segmentData1 = result.segments.find(s => s.segment === segment1);
             if (segmentData1 === undefined) {
-                throw new Error(`Can't find segment data for '${segment1}'`);
+                throw new Error(`Can't find segment data for '${ segment1 }'`);
             }
             expect(segmentData1.bytes).toEqual(1);
             expect(segmentData1.size).toEqual("1 b");
@@ -1145,7 +1216,7 @@ describe("Segmenta", () => {
 
             const segmentData2 = result.segments.find(s => s.segment === segment2);
             if (segmentData2 === undefined) {
-                throw new Error(`Can't find segment data for '${segment2}'`);
+                throw new Error(`Can't find segment data for '${ segment2 }'`);
             }
             expect(segmentData2.bytes).toEqual(1);
             expect(segmentData2.size).toEqual("1 b");

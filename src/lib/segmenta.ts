@@ -439,12 +439,30 @@ async function tryDo(func: () => Promise<void>, maxAttempts: number = 5) {
     }
 }
 
+const pagingProps: (keyof (ISanitizedQueryOptions))[] = [
+    "skip",
+    "take",
+    "min",
+    "max"
+];
+
 function sanitizeOptions(opts: ISegmentQueryOptions | string): ISanitizedQueryOptions {
     const options = (isString(opts) ? { query: opts } : opts) as ISanitizedQueryOptions;
     if (!options.query) {
         throw new Error("No query defined");
     }
+    pagingProps.forEach(prop =>
+        makeUndefinedIfNull(options, prop)
+    );
     return options;
+}
+
+function makeUndefinedIfNull(
+    opts: ISanitizedQueryOptions,
+    key: keyof (ISanitizedQueryOptions)): void {
+    if (opts[key] === null) {
+        opts[key] = undefined;
+    }
 }
 
 function looksLikeDSL(str: string): boolean {
