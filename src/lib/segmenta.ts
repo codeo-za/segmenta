@@ -22,7 +22,6 @@ import { tokenize } from "./dsl/tokenize";
 import { parse } from "./dsl/parse";
 import generator from "./debug";
 import LRU from "lru-cache";
-import { Error } from "tslint/lib/error";
 
 const debug = generator(__filename);
 const Redis = require("ioredis");
