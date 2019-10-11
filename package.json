@@ -1,6 +1,6 @@
 {
     "name": "segmenta",
-    "version": "1.0.35",
+    "version": "1.0.36",
     "description": "A blazingly fast API for managing and querying arbitrary data segments stored in Redis",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
