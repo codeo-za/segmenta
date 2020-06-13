@@ -1,0 +1,15 @@
+{
+  "name": "segmenta-tools",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {},
+  "dependencies": {
+    "node-windows": "^0.1.14",
+    "which": "^2.0.2",
+    "yargs": "^15.1.0"
+  }
+}
